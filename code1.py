@@ -40,8 +40,10 @@ class Yt(object):
 	var=None 
 	step=None 
 	length=None 
-	def __init__(self, step):
+	value=None
+	def __init__(self, value,step):
 		super(Yt, self).__init__()
+		self.value=value
 		self.step = step
 
 
@@ -57,7 +59,7 @@ class Xt(object):
 
 def initial(datamatrix,method):
 	covariancematrix=numpy.eye(4,4)
-	umean=0.75*numpy.ones(4).T
+	umean=0*numpy.ones(4).T
 	priorweight=[]
 	posteriorweight=[]
 	yt=[]	
@@ -67,24 +69,16 @@ def initial(datamatrix,method):
 		priorweight.append(priorWeight(i))
 		#print priorweight[i].cov
 		posteriorweight.append(posteriorWeight(i))
-		yt.append(Yt(i))
 		if i==0:
 			xt.append(Xt([1,1,1,1],i))
+			yt.append(Yt(0,i))
 		elif i!=0:
 			xt.append(Xt(datamatrix[i-1,1:5],datamatrix[i-1,0]))
+			yt.append(Yt(datamatrix[i-1,5],datamatrix[i-1,0]))
 	priorweight=numpy.array(priorweight)
 	posteriorweight=numpy.array(posteriorweight)
 	yt=numpy.array(yt)
 	xt=numpy.array(xt)
-	if method=="MO":
-		priorweight[0].u=umean
-		priorweight[0].cov=covariancematrix
-		priorweight[0].covinv=inv(priorweight[0].cov)
-		posteriorweight[0].u=umean
-		posteriorweight[0].cov=covariancematrix
-		posteriorweight[0].covinv=inv(posteriorweight[0].cov)
-		yt[0].u=0
-		yt[0].var=sigma0
 	return priorweight,posteriorweight,xt,yt
 	
 
@@ -107,42 +101,85 @@ def readFile():
 #w is 4*1, x^T is 1*4
 
 # the model for question 1
-def calculate1(datamatrix,method):
-	size=10000
-	priorweight,posteriorweight,xt,yt=initial(datamatrix,method)
-	for t in range(1,size+1):
-		priorweight[t].u=posteriorweight[t-1].u
-		priorweight[t].cov=posteriorweight[t-1].cov
-		priorweight[t].covinv=posteriorweight[t-1].covinv
-		#print priorweight[t].covinv
-		yt[t].u=numpy.dot((xt[t].value.reshape(1,4)),priorweight[t].u.reshape(4,1))
-		yt[t].var=sigma0**2+numpy.dot(numpy.dot(xt[t].value.reshape(1,4),priorweight[t].cov),xt[t].value.reshape(4,1))
-		#print yt[t].var
-		#print yt[t].u
-		# ** 是算术
-		#print numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4)),xt[t].value.reshape(4,1)*xt[t].value.reshape(1,4)
-		posteriorweight[t].cov=yt[t].var**2*inv((yt[t].var**2*priorweight[t].covinv+numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4))))
-		#posteriorweight[t].covinv=priorweight[t].covinv+1/(sigma0**2)*xt[t].value.reshape(4,1)*xt[t].value.reshape(1,4)
-		posteriorweight[t].covinv=inv(posteriorweight[t].cov)
-		#print numpy.dot(posteriorweight[t].cov,posteriorweight[t].covinv)
-		tmp=numpy.dot(numpy.dot(posteriorweight[t].cov,priorweight[t].covinv),priorweight[t].u.reshape(4,1))
-		#print tmp
-		posteriorweight[t].u=tmp+1/(yt[t].var**2)*numpy.dot(posteriorweight[t].cov,xt[t].value.reshape(4,1)*yt[t].u)
-		#print posteriorweight[t].u
-		if t==size-1:
-			print posteriorweight[t].u,posteriorweight[t].cov,yt[t].u
-	#print posteriorweight[size-1].u,posteriorweight[size-1].cov
-	#print yt[size-1].u
-	return yt
 
+
+def calculate(datamatrix,method):
+	if method=="MO":
+		size=10000
+		sigma=1
+		covsigma=numpy.eye(4,4)
+		umean=0*numpy.ones(4).T
+		priorweight,posteriorweight,xt,yt=initial(datamatrix,method)
+		priorweight[0].u=umean
+		priorweight[0].cov=covsigma
+		priorweight[0].covinv=inv(priorweight[0].cov)
+		posteriorweight[0].u=umean
+		posteriorweight[0].cov=covsigma
+		posteriorweight[0].covinv=inv(posteriorweight[0].cov)
+		for t in range(1,size+1):
+			priorweight[t].u=posteriorweight[t-1].u
+			priorweight[t].cov=posteriorweight[t-1].cov
+			priorweight[t].covinv=posteriorweight[t-1].covinv
+			posteriorweight[t].cov=sigma**2*inv(sigma**2*priorweight[t].covinv+numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4)))
+			posteriorweight[t].covinv=priorweight[t].covinv+1/(sigma**2)*numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4))
+			tmp=numpy.dot(numpy.dot(posteriorweight[t].cov,priorweight[t].covinv),priorweight[t].u.reshape(4,1))
+			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*priorweight[t].cov,xt[t].value.reshape(4,1))
+			if t==size:
+				print posteriorweight[t].u,posteriorweight[t].cov,yt[t].value
+	if method=="AB":
+		size=10000
+		sigma=1
+		sigma0=0.25
+		covsigma=numpy.array([[1,0.25,0,0],[0.25,1,0,0],[0,0,1,0],[0,0,0,1]])
+		umean=0*numpy.ones(4).T
+		priorweight,posteriorweight,xt,yt=initial(datamatrix,method)
+		priorweight[0].u=umean
+		priorweight[0].cov=covsigma
+		priorweight[0].covinv=inv(priorweight[0].cov)
+		posteriorweight[0].u=umean
+		posteriorweight[0].cov=covsigma
+		posteriorweight[0].covinv=inv(posteriorweight[0].cov)
+		for t in range(1,size+1):
+			priorweight[t].u=posteriorweight[t-1].u
+			priorweight[t].cov=posteriorweight[t-1].cov
+			priorweight[t].covinv=posteriorweight[t-1].covinv
+			posteriorweight[t].cov=sigma**2*inv(sigma**2*priorweight[t].covinv+numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4)))
+			posteriorweight[t].covinv=priorweight[t].covinv+1/(sigma**2)*numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4))
+			tmp=numpy.dot(numpy.dot(posteriorweight[t].cov,priorweight[t].covinv),priorweight[t].u.reshape(4,1))
+			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*priorweight[t].cov,xt[t].value.reshape(4,1))
+			if t==size:
+				print posteriorweight[t].u,posteriorweight[t].cov,yt[t].value
+	if method=="CD":
+		size=10000
+		sigma=1
+		sigma0=0.25
+		covsigma=numpy.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.25],[0,0,0.25,1]])
+		umean=0*numpy.ones(4).T
+		priorweight,posteriorweight,xt,yt=initial(datamatrix,method)
+		priorweight[0].u=umean
+		priorweight[0].cov=covsigma
+		priorweight[0].covinv=inv(priorweight[0].cov)
+		posteriorweight[0].u=umean
+		posteriorweight[0].cov=covsigma
+		posteriorweight[0].covinv=inv(posteriorweight[0].cov)
+		for t in range(1,size+1):
+			priorweight[t].u=posteriorweight[t-1].u
+			priorweight[t].cov=posteriorweight[t-1].cov
+			priorweight[t].covinv=posteriorweight[t-1].covinv
+			posteriorweight[t].cov=sigma**2*inv(sigma**2*priorweight[t].covinv+numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4)))
+			posteriorweight[t].covinv=priorweight[t].covinv+1/(sigma**2)*numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4))
+			tmp=numpy.dot(numpy.dot(posteriorweight[t].cov,priorweight[t].covinv),priorweight[t].u.reshape(4,1))
+			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*priorweight[t].cov,xt[t].value.reshape(4,1))
+			if t==size:
+				print posteriorweight[t].u,posteriorweight[t].cov,yt[t].value
 
 
 
 def main(argv):
 	datamatrix=readFile()
 	#print datamatrix[100,1]
-	yt=calculate1(datamatrix,"MO")
-	print yt[100].u
+	calculate(datamatrix,"CD")
+	#print yt[100].u
 	#priorweight,posteriorweight,xt,yt=initial(datamatrix)
 	#figure(1)
 	#plt.plot(datamatrix[:,0],datamatrix[:,1:5])
