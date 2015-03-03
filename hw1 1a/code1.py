@@ -5,6 +5,8 @@ import random
 import matplotlib.pyplot as plt
 from pylab import *
 from numpy.linalg import inv
+import csv
+from matplotlib.legend_handler import HandlerLine2D
 
 
 covariancematrix=numpy.eye(4,4)
@@ -41,6 +43,7 @@ class Yt(object):
 	step=None 
 	length=None 
 	value=None
+	predicty=None
 	def __init__(self, value,step):
 		super(Yt, self).__init__()
 		self.value=value
@@ -83,18 +86,12 @@ def initial(datamatrix,method):
 	
 
 def readFile():
-	data = open("stocks.txt","r")
-	datalist = data.readlines()
-	linecount=0
-	#print len(datalist)
-	infodata=[] #1000*5 matrix, the 1st column is the index of each data, the 2nd column is the data of A, 3rd B, 4th C, 5th D
-	for line in datalist:
-		linecount=linecount+1
-		line=line.replace("\n","").split(",")
-		if linecount>=3 and linecount<=10002:
-			infodata.append([int(line[0])-1,float(line[1]),float(line[2]),float(line[3]),float(line[4]),float(line[5])])
-	#print len(infodata)
-	#print infodata[9999]
+	infodata=[]
+	with open('stocks.csv', 'rb') as csvfile:
+		reader = csv.reader(csvfile)
+		for (num, A, B, C, D, Y) in reader:
+			if num != "ms":
+				infodata.append([int(num)-1,float(A), float(B), float(C), float(D), float(Y)])
 	datamatrix=numpy.array(infodata)
 	return datamatrix
 
@@ -104,9 +101,13 @@ def readFile():
 
 
 def calculate(datamatrix,method):
-	if method=="MO":
+
+	if method is "MO":
+		predictvalue=[]
+		sumMSE=0
+		aveMSE=0
 		size=10000
-		sigma=1
+		sigma=2.0
 		covsigma=numpy.eye(4,4)
 		umean=0*numpy.ones(4).T
 		priorweight,posteriorweight,xt,yt=initial(datamatrix,method)
@@ -123,14 +124,26 @@ def calculate(datamatrix,method):
 			posteriorweight[t].cov=sigma**2*inv(sigma**2*priorweight[t].covinv+numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4)))
 			posteriorweight[t].covinv=priorweight[t].covinv+1/(sigma**2)*numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4))
 			tmp=numpy.dot(numpy.dot(posteriorweight[t].cov,priorweight[t].covinv),priorweight[t].u.reshape(4,1))
-			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*priorweight[t].cov,xt[t].value.reshape(4,1))
+			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*posteriorweight[t].cov,xt[t].value.reshape(4,1))
+			sumMSE=sumMSE+(yt[t].value-numpy.dot(xt[t].value.reshape(1,4),posteriorweight[t].u.reshape(4,1)))**2
+			predictvalue.append(numpy.dot(xt[t].value.reshape(1,4),posteriorweight[t].u.reshape(4,1)))
 			if t==size:
-				print posteriorweight[t].u,posteriorweight[t].cov,yt[t].value
+				print "M_0:"
+            	print posteriorweight[t].u
+            	print posteriorweight[t].cov
+            	aveMSE=sumMSE/10000
+            	print aveMSE
+            	return numpy.array(predictvalue)
+
+
 	if method=="AB":
+		predictvalue=[]
+		sumMSE=0
+		aveMSE=0
 		size=10000
-		sigma=1
-		sigma0=0.25
-		covsigma=numpy.array([[1,0.25,0,0],[0.25,1,0,0],[0,0,1,0],[0,0,0,1]])
+		sigma=2.0
+		sigma0=numpy.sqrt(0.5)
+		covsigma=numpy.array([[1,sigma0**2,0,0],[sigma0**2,1,0,0],[0,0,1,0],[0,0,0,1]])
 		umean=0*numpy.ones(4).T
 		priorweight,posteriorweight,xt,yt=initial(datamatrix,method)
 		priorweight[0].u=umean
@@ -146,14 +159,25 @@ def calculate(datamatrix,method):
 			posteriorweight[t].cov=sigma**2*inv(sigma**2*priorweight[t].covinv+numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4)))
 			posteriorweight[t].covinv=priorweight[t].covinv+1/(sigma**2)*numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4))
 			tmp=numpy.dot(numpy.dot(posteriorweight[t].cov,priorweight[t].covinv),priorweight[t].u.reshape(4,1))
-			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*priorweight[t].cov,xt[t].value.reshape(4,1))
-			if t==size:
-				print posteriorweight[t].u,posteriorweight[t].cov,yt[t].value
+			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*posteriorweight[t].cov,xt[t].value.reshape(4,1))
+			sumMSE=sumMSE+(yt[t].value-numpy.dot(xt[t].value.reshape(1,4),posteriorweight[t].u.reshape(4,1)))**2
+			predictvalue.append(numpy.dot(xt[t].value.reshape(1,4),posteriorweight[t].u.reshape(4,1)))			
+        	if t==size:
+        		print "M_AB:"
+        		print posteriorweight[t].u
+        		print posteriorweight[t].cov
+        		aveMSE=sumMSE/10000
+        		print "M_AB average MSE", aveMSE
+        		return numpy.array(predictvalue)
+
 	if method=="CD":
+		predictvalue=[]
+		sumMSE=0
+		aveMSE=0
 		size=10000
-		sigma=1
-		sigma0=0.25
-		covsigma=numpy.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.25],[0,0,0.25,1]])
+		sigma=2.0
+		sigma0=numpy.sqrt(0.5)
+		covsigma=numpy.array([[1,0,0,0],[0,1,0,0],[0,0,1,sigma0**2],[0,0,sigma0**2,1]])
 		umean=0*numpy.ones(4).T
 		priorweight,posteriorweight,xt,yt=initial(datamatrix,method)
 		priorweight[0].u=umean
@@ -169,26 +193,35 @@ def calculate(datamatrix,method):
 			posteriorweight[t].cov=sigma**2*inv(sigma**2*priorweight[t].covinv+numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4)))
 			posteriorweight[t].covinv=priorweight[t].covinv+1/(sigma**2)*numpy.dot(xt[t].value.reshape(4,1),xt[t].value.reshape(1,4))
 			tmp=numpy.dot(numpy.dot(posteriorweight[t].cov,priorweight[t].covinv),priorweight[t].u.reshape(4,1))
-			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*priorweight[t].cov,xt[t].value.reshape(4,1))
-			if t==size:
-				print posteriorweight[t].u,posteriorweight[t].cov,yt[t].value
+			posteriorweight[t].u=tmp+numpy.dot(yt[t].value/(sigma**2)*posteriorweight[t].cov,xt[t].value.reshape(4,1))
+			sumMSE=sumMSE+(yt[t].value-numpy.dot(xt[t].value.reshape(1,4),posteriorweight[t].u.reshape(4,1)))**2
+			predictvalue.append(numpy.dot(xt[t].value.reshape(1,4),posteriorweight[t].u.reshape(4,1)))
+		aveMSE=sumMSE/10000
+        if t==size:
+            print "M_AB:"
+            print posteriorweight[t].u
+            print posteriorweight[t].cov
+            aveMSE=sumMSE/10000
+            print "M_CD average MSE", aveMSE
+            return numpy.array(predictvalue)
 
 
 
 def main(argv):
 	datamatrix=readFile()
-	#print datamatrix[100,1]
-	calculate(datamatrix,"CD")
-	#print yt[100].u
-	#priorweight,posteriorweight,xt,yt=initial(datamatrix)
-	#figure(1)
-	#plt.plot(datamatrix[:,0],datamatrix[:,1:5])
-	#plt.plot(datamatrix[:,0],datamatrix[:,1:4],'.')
-	figure(2)
-	plt.plot(datamatrix[:,0],datamatrix[:,5])
-	#plt.plot(datamatrix[:,0],yt[:].u)
-	#plt.show()
-	#print x
+	predictyMO=calculate(datamatrix,"MO")
+	predictyAB=calculate(datamatrix,"AB")
+	predictyCD=calculate(datamatrix,"CD")
+	figure(1)
+	line1, =plt.plot(datamatrix[:,0],datamatrix[:,5],'.',color='blue',alpha=0.5,label='real y')
+	line2, =plt.plot(datamatrix[:,0],predictyMO[:,0,0],'--',color='green',alpha=0.5,label='pred y_M_0')
+	line3, =plt.plot(datamatrix[:,0],predictyAB[:,0,0],'-',color='pink',alpha=0.5,label='pred y_M_AB')
+	line4, =plt.plot(datamatrix[:,0],predictyCD[:,0,0],'-',color='black',alpha=0.5,label='pred y_M_CD')
+	plt.xlabel("t-step")
+	plt.ylabel("Y")
+	plt.title("Real y with prediction y by M_O,M_AB, and M_CD")
+	first_legend=plt.legend(handler_map={line1:HandlerLine2D(4)})
+	plt.show()
 
 if __name__ == "__main__":
      main(sys.argv)
