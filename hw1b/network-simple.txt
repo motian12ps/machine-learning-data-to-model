@@ -1,0 +1,8 @@
+3
+FluRate Elevated,NotElevated
+MaryGetsFlu Yes,No
+RoommateHasFlu Yes,No
+FluRate -> RoommateHasFlu
+FluRate -> MaryGetsFlu
+RoommateHasFlu -> MaryGetsFlu
+

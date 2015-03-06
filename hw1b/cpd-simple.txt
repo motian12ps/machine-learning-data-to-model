@@ -1,0 +1,14 @@
+FluRate=Elevated None 0.5
+FluRate=NotElevated None 0.5
+MaryGetsFlu=Yes FluRate=Elevated,RoommateHasFlu=Yes 0.8
+MaryGetsFlu=No FluRate=Elevated,RoommateHasFlu=Yes 0.2
+MaryGetsFlu=Yes FluRate=Elevated,RoommateHasFlu=No 0.5
+MaryGetsFlu=No FluRate=Elevated,RoommateHasFlu=No 0.5
+MaryGetsFlu=Yes FluRate=NotElevated,RoommateHasFlu=Yes 0.6
+MaryGetsFlu=No FluRate=NotElevated,RoommateHasFlu=Yes 0.4
+MaryGetsFlu=Yes FluRate=NotElevated,RoommateHasFlu=No 0.1
+MaryGetsFlu=No FluRate=NotElevated,RoommateHasFlu=No 0.9
+RoommateHasFlu=Yes FluRate=Elevated 0.6
+RoommateHasFlu=No FluRate=Elevated 0.4
+RoommateHasFlu=Yes FluRate=NotElevated 0.15
+RoommateHasFlu=No FluRate=NotElevated 0.85

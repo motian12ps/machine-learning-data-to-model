@@ -1,0 +1,579 @@
+#!/usr/bin/env python
+## -*- coding: utf-8 -*-
+import sys
+import numpy
+import random
+import matplotlib.pyplot as plt
+import string
+
+
+class Node(object):
+	"""docstring for Node"""
+	name=None
+	condition=None
+	#the index of conditions
+	indexcondition=None 
+	numcondtion=0
+	cdp=None
+	nodecount=None
+	parent=None
+	numparent=0
+	children=None
+	numchildren=0
+	ID=None
+	isroot=None
+	joint=None
+	flag=None
+	marginalProbCondition=None
+	iscalculated=None
+	parentname=None
+	def __init__(self, nodecount):
+		super(Node, self).__init__()
+		self.nodecount = nodecount
+
+class Condition(object):
+	"""docstring for Condition"""
+	value=None
+	index=None
+	def __init__(self, value,index):
+		super(Condition, self).__init__()
+		self.value = value
+		self.index = index
+
+class Cpd(object):
+	"""docstring for Condition"""
+	table=None
+	dimensioncpd=None
+	name=None
+	index=None
+	def __init__(self, table,dimensioncpd,name):
+		super(Cpd, self).__init__()
+		self.table = table
+		self.dimensioncpd = dimensioncpd
+		self.name = name
+
+
+class Joint(object):
+	"""docstring for Joint"""
+	table=None
+	dimension=None
+	name=None
+	def __init__(self, table, dimension,name):
+		super(Joint, self).__init__()
+		self.table = table
+		self.dimension=dimension
+		self.name = name
+		
+
+class LoadData(object):
+	"""docstring for ClassName"""
+	loadname=[]
+	loadindex=[]
+	def __init__(self):
+		super(LoadData, self).__init__()
+
+				
+
+def defineNetworkStructure(argv):
+	"""define the network structure"""
+	data=None
+	if len(argv)>2:
+		filename=argv[1]
+		data=open(filename,"r")
+	elif len(argv)==1:
+		data=open("network-extended.txt","r")
+
+	netstructure = data.readlines()
+	lenoflist=len(netstructure)
+	linecount=0
+	nodecount=0
+	node=[]	
+	#nodecount=nonenode means it is an empty node, it is used to define the parent of root in every bayes graph
+	nonenode=-100
+	for line in netstructure:
+		flag="node"
+		linecount=linecount+1
+		if linecount==1:
+			numofnode=line[0]
+		if linecount>1 and linecount<=lenoflist-1:
+			line=line.replace("\n","").split(" ")
+			for entry in line:
+				if entry=="->":
+					flag="edge"	
+			if flag=="node":
+				line[1]=line[1].split(",")
+				node.append(Node(nodecount))
+				node[nodecount].condition=[]
+				node[nodecount].name=line[0]
+				index=0
+				for entry in line[1]:
+					con=Condition(entry,index)
+					node[nodecount].condition.append(con)
+					index=index+1
+				#the 1st row is the index of the condition, the second row is the value of conditions
+				node[nodecount].numcondtion=len(line[1])
+				node[nodecount].ID=nodecount
+				node[nodecount].parent=[]
+				node[nodecount].parentname=[]
+				node[nodecount].children=[]
+				node[nodecount].iscalculated=False
+				node[nodecount].isroot=False
+				nodecount=nodecount+1
+			# construct the edge among the vertices	
+			if flag=="edge":
+				if line[0]!=None and line[2]!=None:
+					parentname=line[0]
+					childrenname=line[2]
+					for n1 in node:
+						if n1.name==parentname:
+							for n2 in node:
+								if n2.name==childrenname:
+									n1.children.append(n2)
+									n2.parent.append(n1)
+									n2.parentname.append(n1.name)
+									parentname=None
+									childrenname=None
+									break
+	#update the number of parents and children of each vertex
+	#initialize the cpd table of each node
+	
+	for n in node:
+		n.numparent=len(n.parent)
+		n.numchildren=len(n.children)
+		n.flag=numpy.zeros(n.numparent)
+		#set nonenode as the parent of each root
+		if n.numparent==0:
+			n.parent.append(Node(nonenode))
+			n.numparent=n.numparent+1
+			n.isroot=True
+			n.flag=numpy.ones(n.numparent)
+		dimensioncpd=[]
+		nameofcpd=[]
+		dimensioncpd.append(n.numcondtion)
+		nameofcpd.append(n.name)
+		for p in n.parent:
+			if p.nodecount!= -100:
+				dimensioncpd.append(p.numcondtion)
+				nameofcpd.append(p.name)
+		if dimensioncpd!=None:
+			#tmp=str(dimensioncpd).lstrip('[').strip(']')
+			n.cpd=Cpd(numpy.zeros(dimensioncpd),dimensioncpd,nameofcpd)
+			n.joint=Joint(numpy.zeros(dimensioncpd),dimensioncpd,nameofcpd)
+	return node
+
+def loadCDP(node,argv):
+	
+	data=None
+
+	if len(argv)>2:
+		filename=argv[2]
+		data=open(filename,"r")
+	elif len(argv)==1:
+		data=open("cpd-extended.txt","r")
+
+	CDPdata= data.readlines()
+	lenoflist=len(CDPdata)
+	linecount=0
+	nodecount=0
+	for line in CDPdata:	
+		linecount=linecount+1
+		if linecount<=lenoflist:
+			line=line.replace("\n","").split(" ")
+			lenline=len(line)
+			#line[0] is the name of current node=its condition,line[1] is the current node's parent=its condition
+			line[0]=line[0].split("=")
+			#line[0][0] is the 
+			line[1]=line[1].split(",")
+			#the following is to determine the index of various index, then we can use these index to one-to-one determine the value of every entry of cdp
+			for n1 in node:
+				if n1.name==line[0][0]:
+					loadData=LoadData()
+					loadData.loadname=[]
+					loadData.loadindex=[]
+					indexinputdata=[]
+					for i in range(0,n1.numcondtion):
+						if line[0][1]==n1.condition[i].value:
+							indexinputdata.append(n1.condition[i].index)
+					#if line[1] doesn't equal to the parent number of the current node, then it is impossible.
+					if len(line[1])==n1.numparent:
+						for parentNodeCond in line[1]:
+							#parentNodeCond[0] is the name of condition, parentNodeCond[1] is its condition
+							parentNodeCond=parentNodeCond.split("=")
+							for n2 in node:
+								if n2.name==parentNodeCond[0]:
+									for i in range(0,n2.numcondtion):
+										if parentNodeCond[1]==n2.condition[i].value:
+											loadData.loadname.append(n2.name)	
+											loadData.loadindex.append(n2.condition[i].index)
+						#a=[1,2,3,4]
+						for i1 in range(0,n1.numparent):
+							for i2 in loadData.loadname: 
+								if n1.parent[i1].name==i2:
+									indexinputdata.append(loadData.loadindex[loadData.loadname.index(i2)])
+						tmpcpd=n1.cpd.table
+						count=0
+						for i in indexinputdata:
+							count=count+1
+							if i!=',' and i != ' ':
+								if count!=len(indexinputdata):
+									tmpcpd=tmpcpd[int(i)]
+								elif count==len(indexinputdata):
+									tmpcpd[int(i)]=line[2]
+					elif len(line[1])!=n1.numparent:
+						print "cpd-extended file error: input cpd must be the node of its parent"
+	for n in node:
+		if n.isroot==True:
+			n.marginalProbCondition=n.cpd.table
+			n.joint.table=n.marginalProbCondition
+			n.iscalculated=True
+		elif n.isroot==False:
+			n.marginalProbCondition=numpy.zeros(n.numcondtion)
+	return node
+
+
+def getConditionIndex(name,node):
+	for i in range(0,node.numcondtion):
+		if name==node.condition[i].value:
+			return node.condition[i].index
+
+#this function is to use a list of index to get the corresponding cpd in the cpd table
+def findCdpInTable(indexList, node):
+	tmpcpd=node.cpd.table
+	for i in indexList:
+		if i!=',' and i!=' ':
+			tmpcpd=tmpcpd[int(i)]
+	return tmpcpd
+
+def findEntryInTable(indexList, table):
+	tmpcpd=table
+	for i in indexList:
+		if i!=',' and i!=' ':
+			tmpcpd=tmpcpd[int(i)]
+	return tmpcpd
+
+def sumPartOfTable(indexList,node,table):
+	sumpartcpd=0
+	tmpcpd=table
+	ind=[]
+	for item in indexList:
+		ind.append([getIndex(item[0],node.cpd.name),item[2]])
+	for index,x in numpy.ndenumerate(table):
+		flag=True
+		for i in range(0,len(ind)):
+			if index[ind[i][0]]!=ind[i][1]:
+				flag=False
+		if flag==True:
+			sumpartcpd=sumpartcpd+x
+	return sumpartcpd
+
+def sumPartMarginal(indexList,node,table,argv):
+	sumpartcpd=0
+	tmpcpd=table
+	ind=[]
+	remainingindexaspa=None
+	for item in indexList:
+		ind.append([getIndex(item[0],node.cpd.name),item[2]])
+	for i in range(0,len(node.cpd.name)):
+		flag=False
+		for j in range(0,len(ind)):
+			if i==ind[j][0]:
+				flag=True
+		if flag==False:
+			remainingindexaspa=i
+	remaining=node.parent[remainingindexaspa-1]
+	for index,x in numpy.ndenumerate(table):
+		flag=True
+		for i in range(0,len(ind)):
+			if index[ind[i][0]]!=ind[i][1]:
+				flag=False
+		if flag==True:
+			sumpartcpd=sumpartcpd+x*remaining.marginalProbCondition[index[remainingindexaspa]]
+	return sumpartcpd
+
+def isReachable(node):
+	for parent in node.parent:
+		if parent.iscalculated==False:
+			return False
+	return True
+
+def isAllCalculated(node):
+	for n in node:
+		if n.iscalculated==False:
+			return False
+	return True
+
+def isCalculated(node):
+	for i in node.flag:
+		if i==0:
+			return False
+	return True
+
+def deleteFirstEntry(List):
+	LIST=[]
+	for i in range(0,len(List)):
+		if i!=0:
+			LIST.append(List[i])
+	return LIST
+
+def updateFlag(parent,n1):
+	for i in range(0,n1.numparent):
+		n1.flag[i]=1
+	return n1.flag
+
+def calculatejoint1(node):
+	updatecount=0
+	while(isAllCalculated(node)==False): 
+		if updatecount==50:
+			print "something wrong"
+			break
+		for n1 in node:
+ 			if isReachable(n1)==True:
+ 				if n1.isroot==True and n1.iscalculated==False:
+					n1.iscalculated=True
+	 				n1.joint.table=n1.cpd.table
+					n1.joint.dimension=n1.cpd.dimensioncpd
+					n1.joint.name=n1.cpd.name
+					n1.iscalculated=True
+				elif n1.isroot==False and n1.iscalculated==False:
+					n1.joint.table=numpy.zeros(n1.cpd.dimensioncpd)
+					n1.joint.name=n1.cpd.name
+					while(n1.iscalculated==False):
+						for parent in n1.parent:
+							if n1.flag[getParentIndex(parent,n1)]==0:
+								for index,x in numpy.ndenumerate(n1.joint.table):
+									index1=getIndex(parent.name,n1.cpd.name)
+									parentcond=index[index1]
+									if isTheSame(parent.cpd.name,n1.parentname):
+										indexInParentCpd=deleteFirstEntry(index)
+										indexInParentCpd=reSequence(indexInParentCpd,n1.parentname,parent.cpd.name)
+										n1.joint.table[index]=n1.cpd.table[index]*findEntryInTable(indexInParentCpd,parent.joint.table)
+										n1.iscalculated=True
+					n1.marginalProbCondition=getMarginalProbCondtion(n1)	
+	return node
+
+def isTheSame(List1,List2):
+	if len(List1)==len(List2):
+		flag=numpy.ones(len(List1))
+		for li1 in List1:
+			for li2 in List2:
+				if li1==li2:
+					flag[getIndex(li1,List1)]=0
+		for f in flag:
+			if f==1:
+				return False
+		return True
+	return False
+
+def reSequence(List1,List2,List3):
+	List=[]
+	if isTheSame(List2,List3) and len(List1)==len(List2):
+		index=-1
+		while(index<len(List1)-1):
+			index=index+1
+			for li2 in List2:
+				if li2 == List3[index]:
+					List.append(List1[getIndex(li2,List2)])
+		return List			
+	return List1				
+
+def getMarginalProbCondtion(node):
+	node.marginalProbCondition=numpy.zeros(node.numcondtion)
+	for i in range(0,node.numcondtion):
+		for index,x in numpy.ndenumerate(node.joint.table):
+			if i==index[0]:
+				#print node.joint.table[index],index,x
+				node.marginalProbCondition[i]=node.marginalProbCondition[i]+node.joint.table[index]
+	return node.marginalProbCondition
+
+
+def getIndex(x,List):
+	index=-1
+	for i in List:
+		index=index+1
+		if x==i:
+			return index
+	return -1
+
+def getNode(name,node):
+	for n in node:
+		if name==n.name:
+			return n
+	return None
+
+def iscondition(name,node):
+	for i in node.condition:
+		if name==i.value:
+			return True
+	return False
+
+def getParentIndex(pare,node):
+	index=-1
+	for parent in node.parent:
+		index=index+1
+		if pare.name==parent.name:
+			return index
+	return -1
+
+def isInNode(List1,List2):
+	if isTheSame(List1,List2)==False:
+		flag=0
+		for li1 in List1:
+			for li2 in List2:
+				if li1==li2:
+					flag=flag+1
+		if flag==len(List1):
+			return True
+	return False			
+def MaryNotHere(argv):
+	argv=str(argv).split("=")
+	if argv[0]=="MaryGetsFlu":
+		return False
+	return True
+
+def argvlen(argv):
+	argv=str(argv).split(",")
+	return len(argv)
+
+def calculate(node,argv):
+	#if the input parameter doesn't satisfy to get a result
+	#print len(argv)
+	if len(argv)<4:
+		print "please input correct parameter to calculate the probability"
+	#when len(argv)==4, then we don't have the final condition
+	elif len(argv)==4:
+		argv[3]=str(argv[3])
+		argv[3]=argv[3].split(',')
+		listCond=[]
+		#print argv[3],len(argv[3])
+		if len(argv[3])==1:
+			argv[3]=str(argv[3]).split('=')
+			argv[3][0]=argv[3][0].lstrip('[\'')
+			argv[3][1]=argv[3][1].strip('\']')
+			n=getNode(argv[3][0],node)
+			for i in range(0,n.numcondtion):
+				if argv[3][1]==n.condition[i].value:
+					print "P(",n.name,"=",n.condition[i].value,")="
+					print '%.13e' % (n.marginalProbCondition[i])
+		elif len(argv[3])>1:
+			listname=[]
+			listcond1=[]
+			listcond2=[]
+			for variable in argv[3]:
+				variable=variable.split('=')
+				listname.append(variable[0])
+				listcond1.append(getConditionIndex(variable[1],getNode(variable[0],node)))
+				listcond2.append([variable[0],variable[1],getConditionIndex(variable[1],getNode(variable[0],node))])	
+			for n in node:
+				if isTheSame(listname,n.joint.name)==True:
+					listCond1=reSequence(listcond1,listname,n.joint.name)
+					print "P(",argv[3],")="
+					print '%.13e' % findEntryInTable(listCond1,n.joint.table)
+				elif isInNode(listname,n.joint.name)==True:
+					print "P(",argv[3],")="
+					print '%.13e' % sumPartOfTable(listcond2,n,n.joint.table)
+
+
+	elif len(argv)==5:
+		argv[3]=str(argv[3])
+		argv[3]=argv[3].split(',')
+		listCond=[]
+		len3=len(argv[3])
+		len4=argvlen(argv[4])
+		if len3==1 and len4==2:
+			argv[3]=str(argv[3]).split('=')
+			argv[3][0]=argv[3][0].lstrip('[\'')
+			argv[3][1]=argv[3][1].strip('\']')
+			primalnode=getNode(argv[3][0],node)
+			listCond=[]
+			string=argv[4]
+			argv[4]=str(argv[4])
+			argv[4]=argv[4].split(",")
+			if iscondition(argv[3][1],primalnode)==True:
+				listCond.append([argv[3][0],argv[3][1],getConditionIndex(argv[3][1],primalnode)])
+			for variable in argv[4]:
+				variable=variable.split("=")
+				for parent in primalnode.parent:
+					if variable[0]==parent.name:
+						if iscondition(variable[1],parent)==True: 
+							listCond.append([variable[0],variable[1],getConditionIndex(variable[1],getNode(variable[0],node))])	
+						elif iscondition(variable[1],parent)!=True:
+							print "Your input condition is not impossible" 	
+			print "P(",argv[3][0],"=",argv[3][1],"|",string,")="
+			print '%.13e' % sumPartOfTable(listCond,primalnode,primalnode.cpd.table)
+
+		elif len3==1 and len4==1 and MaryNotHere(argv[3])!=True:
+			argv[3]=str(argv[3]).split('=')
+			argv[3][0]=argv[3][0].lstrip('[\'')
+			argv[3][1]=argv[3][1].strip('\']')
+			primalnode=getNode(argv[3][0],node)
+			listCond=[]
+			string=argv[4]
+			argv[4]=str(argv[4]).split("=")
+			argv[4][0]=argv[4][0].lstrip('[\'')
+			argv[4][1]=argv[4][1].strip('\']')
+			if iscondition(argv[3][1],primalnode)==True:
+				listCond.append([argv[3][0],argv[3][1],getConditionIndex(argv[3][1],primalnode)])
+			for parent in primalnode.parent:
+				if argv[4][0]==parent.name:
+					if iscondition(argv[4][1],parent)==True: 
+						listCond.append([argv[4][0],argv[4][1],getConditionIndex(argv[4][1],getNode(argv[4][0],node))])	
+					elif iscondition(argv[4][1],parent)!=True:
+						print "Your input condition is not impossible" 
+			print "P(",argv[3][0],"=",argv[3][1],"|",string,")="
+			print '%.13e' % sumPartOfTable(listCond,primalnode,primalnode.cpd.table)
+
+		elif len3==1 and len4==1 and MaryNotHere(argv[3])==True:
+			argv[3]=str(argv[3]).split('=')
+			argv[3][0]=argv[3][0].lstrip('[\'')
+			argv[3][1]=argv[3][1].strip('\']')
+			primalnode=getNode(argv[3][0],node)
+			listCond=[]
+			string=argv[4]
+			argv[4]=str(argv[4]).split("=")
+			argv[4][0]=argv[4][0].lstrip('[\'')
+			argv[4][1]=argv[4][1].strip('\']')
+			if iscondition(argv[3][1],primalnode)==True:
+				listCond.append([argv[3][0],argv[3][1],getConditionIndex(argv[3][1],primalnode)])
+			listCond.append([argv[4][0],argv[4][1],getConditionIndex(argv[4][1],getNode(argv[4][0],node))])	
+			print "P(",argv[3][0],"=",argv[3][1],"|",string,")="
+			print '%.13e' % sumPartMarginal(listCond,primalnode,primalnode.cpd.table,argv[4])
+
+		elif len3>1:
+			listname=[]
+			listcond1=[]
+			listcond2=[]
+			string=argv[4]
+			argv[4]=str(argv[4])
+			argv[4]=argv[4].split(",")
+			for variable in argv[3]:
+				variable=variable.split('=')
+				listname.append(variable[0])
+				listcond1.append(getConditionIndex(variable[1],getNode(variable[0],node)))
+				listcond2.append([variable[0],variable[1],getConditionIndex(variable[1],getNode(variable[0],node))])	
+			for variable in argv[4]:
+				variable=variable.split("=")
+				listcond1.append(getConditionIndex(variable[1],getNode(variable[0],node)))
+				listcond2.append([variable[0],variable[1],getConditionIndex(variable[1],getNode(variable[0],node))])
+				listname.append(variable[0])
+			for n in node:
+				if isTheSame(listname,n.joint.name)==True:
+					listCond1=reSequence(listcond1,listname,n.joint.name)
+					p1=findEntryInTable(listCond1,n.joint.table)
+					argv[4][0]=argv[4][0].split("=")
+					#print getNode(argv[4][0][0],node).name
+					p2=getNode(argv[4][0][0],node).marginalProbCondition[getConditionIndex(argv[4][0][1],getNode(argv[4][0][0],node))]
+					p=(p1/p2)
+					print "P(",argv[3],"|",string,")="
+					print '%.13e' % p
+
+
+
+
+def main(argv):
+	node=defineNetworkStructure(argv)
+	updatednode=loadCDP(node,argv)
+	updatednode1=calculatejoint1(updatednode)
+	calculate(updatednode1,argv)
+
+if __name__ == "__main__":
+	main(sys.argv)
