@@ -1,0 +1,427 @@
+150
+PositionRow_0 1,2,3,4,5,6,7,8,9,10
+PositionCol_0 1,2,3,4,5,6,7,8,9,10
+PositionRow_1 1,2,3,4,5,6,7,8,9,10
+PositionCol_1 1,2,3,4,5,6,7,8,9,10
+PositionRow_2 1,2,3,4,5,6,7,8,9,10
+PositionCol_2 1,2,3,4,5,6,7,8,9,10
+PositionRow_3 1,2,3,4,5,6,7,8,9,10
+PositionCol_3 1,2,3,4,5,6,7,8,9,10
+PositionRow_4 1,2,3,4,5,6,7,8,9,10
+PositionCol_4 1,2,3,4,5,6,7,8,9,10
+PositionRow_5 1,2,3,4,5,6,7,8,9,10
+PositionCol_5 1,2,3,4,5,6,7,8,9,10
+PositionRow_6 1,2,3,4,5,6,7,8,9,10
+PositionCol_6 1,2,3,4,5,6,7,8,9,10
+PositionRow_7 1,2,3,4,5,6,7,8,9,10
+PositionCol_7 1,2,3,4,5,6,7,8,9,10
+PositionRow_8 1,2,3,4,5,6,7,8,9,10
+PositionCol_8 1,2,3,4,5,6,7,8,9,10
+PositionRow_9 1,2,3,4,5,6,7,8,9,10
+PositionCol_9 1,2,3,4,5,6,7,8,9,10
+Action_0 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_1 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_2 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_3 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_4 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_5 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_6 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_7 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_8 MoveNorth,MoveSouth,MoveEast,MoveWest
+Action_9 MoveNorth,MoveSouth,MoveEast,MoveWest
+ObserveWall_N_0 Yes,No
+ObserveWall_S_0 Yes,No
+ObserveWall_E_0 Yes,No
+ObserveWall_W_0 Yes,No
+ObserveLandmark1_N_0 Yes,No
+ObserveLandmark1_S_0 Yes,No
+ObserveLandmark1_E_0 Yes,No
+ObserveLandmark1_W_0 Yes,No
+ObserveLandmark2_N_0 Yes,No
+ObserveLandmark2_S_0 Yes,No
+ObserveLandmark2_E_0 Yes,No
+ObserveLandmark2_W_0 Yes,No
+ObserveWall_N_1 Yes,No
+ObserveWall_S_1 Yes,No
+ObserveWall_E_1 Yes,No
+ObserveWall_W_1 Yes,No
+ObserveLandmark1_N_1 Yes,No
+ObserveLandmark1_S_1 Yes,No
+ObserveLandmark1_E_1 Yes,No
+ObserveLandmark1_W_1 Yes,No
+ObserveLandmark2_N_1 Yes,No
+ObserveLandmark2_S_1 Yes,No
+ObserveLandmark2_E_1 Yes,No
+ObserveLandmark2_W_1 Yes,No
+ObserveWall_N_2 Yes,No
+ObserveWall_S_2 Yes,No
+ObserveWall_E_2 Yes,No
+ObserveWall_W_2 Yes,No
+ObserveLandmark1_N_2 Yes,No
+ObserveLandmark1_S_2 Yes,No
+ObserveLandmark1_E_2 Yes,No
+ObserveLandmark1_W_2 Yes,No
+ObserveLandmark2_N_2 Yes,No
+ObserveLandmark2_S_2 Yes,No
+ObserveLandmark2_E_2 Yes,No
+ObserveLandmark2_W_2 Yes,No
+ObserveWall_N_3 Yes,No
+ObserveWall_S_3 Yes,No
+ObserveWall_E_3 Yes,No
+ObserveWall_W_3 Yes,No
+ObserveLandmark1_N_3 Yes,No
+ObserveLandmark1_S_3 Yes,No
+ObserveLandmark1_E_3 Yes,No
+ObserveLandmark1_W_3 Yes,No
+ObserveLandmark2_N_3 Yes,No
+ObserveLandmark2_S_3 Yes,No
+ObserveLandmark2_E_3 Yes,No
+ObserveLandmark2_W_3 Yes,No
+ObserveWall_N_4 Yes,No
+ObserveWall_S_4 Yes,No
+ObserveWall_E_4 Yes,No
+ObserveWall_W_4 Yes,No
+ObserveLandmark1_N_4 Yes,No
+ObserveLandmark1_S_4 Yes,No
+ObserveLandmark1_E_4 Yes,No
+ObserveLandmark1_W_4 Yes,No
+ObserveLandmark2_N_4 Yes,No
+ObserveLandmark2_S_4 Yes,No
+ObserveLandmark2_E_4 Yes,No
+ObserveLandmark2_W_4 Yes,No
+ObserveWall_N_5 Yes,No
+ObserveWall_S_5 Yes,No
+ObserveWall_E_5 Yes,No
+ObserveWall_W_5 Yes,No
+ObserveLandmark1_N_5 Yes,No
+ObserveLandmark1_S_5 Yes,No
+ObserveLandmark1_E_5 Yes,No
+ObserveLandmark1_W_5 Yes,No
+ObserveLandmark2_N_5 Yes,No
+ObserveLandmark2_S_5 Yes,No
+ObserveLandmark2_E_5 Yes,No
+ObserveLandmark2_W_5 Yes,No
+ObserveWall_N_6 Yes,No
+ObserveWall_S_6 Yes,No
+ObserveWall_E_6 Yes,No
+ObserveWall_W_6 Yes,No
+ObserveLandmark1_N_6 Yes,No
+ObserveLandmark1_S_6 Yes,No
+ObserveLandmark1_E_6 Yes,No
+ObserveLandmark1_W_6 Yes,No
+ObserveLandmark2_N_6 Yes,No
+ObserveLandmark2_S_6 Yes,No
+ObserveLandmark2_E_6 Yes,No
+ObserveLandmark2_W_6 Yes,No
+ObserveWall_N_7 Yes,No
+ObserveWall_S_7 Yes,No
+ObserveWall_E_7 Yes,No
+ObserveWall_W_7 Yes,No
+ObserveLandmark1_N_7 Yes,No
+ObserveLandmark1_S_7 Yes,No
+ObserveLandmark1_E_7 Yes,No
+ObserveLandmark1_W_7 Yes,No
+ObserveLandmark2_N_7 Yes,No
+ObserveLandmark2_S_7 Yes,No
+ObserveLandmark2_E_7 Yes,No
+ObserveLandmark2_W_7 Yes,No
+ObserveWall_N_8 Yes,No
+ObserveWall_S_8 Yes,No
+ObserveWall_E_8 Yes,No
+ObserveWall_W_8 Yes,No
+ObserveLandmark1_N_8 Yes,No
+ObserveLandmark1_S_8 Yes,No
+ObserveLandmark1_E_8 Yes,No
+ObserveLandmark1_W_8 Yes,No
+ObserveLandmark2_N_8 Yes,No
+ObserveLandmark2_S_8 Yes,No
+ObserveLandmark2_E_8 Yes,No
+ObserveLandmark2_W_8 Yes,No
+ObserveWall_N_9 Yes,No
+ObserveWall_S_9 Yes,No
+ObserveWall_E_9 Yes,No
+ObserveWall_W_9 Yes,No
+ObserveLandmark1_N_9 Yes,No
+ObserveLandmark1_S_9 Yes,No
+ObserveLandmark1_E_9 Yes,No
+ObserveLandmark1_W_9 Yes,No
+ObserveLandmark2_N_9 Yes,No
+ObserveLandmark2_S_9 Yes,No
+ObserveLandmark2_E_9 Yes,No
+ObserveLandmark2_W_9 Yes,No
+Action_0 -> PositionRow_1
+PositionRow_0 -> PositionRow_1
+Action_0 -> PositionCol_1
+PositionCol_0 -> PositionCol_1
+Action_1 -> PositionRow_2
+PositionRow_1 -> PositionRow_2
+Action_1 -> PositionCol_2
+PositionCol_1 -> PositionCol_2
+Action_2 -> PositionRow_3
+PositionRow_2 -> PositionRow_3
+Action_2 -> PositionCol_3
+PositionCol_2 -> PositionCol_3
+Action_3 -> PositionRow_4
+PositionRow_3 -> PositionRow_4
+Action_3 -> PositionCol_4
+PositionCol_3 -> PositionCol_4
+Action_4 -> PositionRow_5
+PositionRow_4 -> PositionRow_5
+Action_4 -> PositionCol_5
+PositionCol_4 -> PositionCol_5
+Action_5 -> PositionRow_6
+PositionRow_5 -> PositionRow_6
+Action_5 -> PositionCol_6
+PositionCol_5 -> PositionCol_6
+Action_6 -> PositionRow_7
+PositionRow_6 -> PositionRow_7
+Action_6 -> PositionCol_7
+PositionCol_6 -> PositionCol_7
+Action_7 -> PositionRow_8
+PositionRow_7 -> PositionRow_8
+Action_7 -> PositionCol_8
+PositionCol_7 -> PositionCol_8
+Action_8 -> PositionRow_9
+PositionRow_8 -> PositionRow_9
+Action_8 -> PositionCol_9
+PositionCol_8 -> PositionCol_9
+PositionRow_0 -> ObserveWall_N_0
+PositionCol_0 -> ObserveWall_N_0
+PositionRow_0 -> ObserveWall_S_0
+PositionCol_0 -> ObserveWall_S_0
+PositionRow_0 -> ObserveWall_E_0
+PositionCol_0 -> ObserveWall_E_0
+PositionRow_0 -> ObserveWall_W_0
+PositionCol_0 -> ObserveWall_W_0
+PositionRow_0 -> ObserveLandmark1_N_0
+PositionCol_0 -> ObserveLandmark1_N_0
+PositionRow_0 -> ObserveLandmark1_S_0
+PositionCol_0 -> ObserveLandmark1_S_0
+PositionRow_0 -> ObserveLandmark1_E_0
+PositionCol_0 -> ObserveLandmark1_E_0
+PositionRow_0 -> ObserveLandmark1_W_0
+PositionCol_0 -> ObserveLandmark1_W_0
+PositionRow_0 -> ObserveLandmark2_N_0
+PositionCol_0 -> ObserveLandmark2_N_0
+PositionRow_0 -> ObserveLandmark2_S_0
+PositionCol_0 -> ObserveLandmark2_S_0
+PositionRow_0 -> ObserveLandmark2_E_0
+PositionCol_0 -> ObserveLandmark2_E_0
+PositionRow_0 -> ObserveLandmark2_W_0
+PositionCol_0 -> ObserveLandmark2_W_0
+PositionRow_1 -> ObserveWall_N_1
+PositionCol_1 -> ObserveWall_N_1
+PositionRow_1 -> ObserveWall_S_1
+PositionCol_1 -> ObserveWall_S_1
+PositionRow_1 -> ObserveWall_E_1
+PositionCol_1 -> ObserveWall_E_1
+PositionRow_1 -> ObserveWall_W_1
+PositionCol_1 -> ObserveWall_W_1
+PositionRow_1 -> ObserveLandmark1_N_1
+PositionCol_1 -> ObserveLandmark1_N_1
+PositionRow_1 -> ObserveLandmark1_S_1
+PositionCol_1 -> ObserveLandmark1_S_1
+PositionRow_1 -> ObserveLandmark1_E_1
+PositionCol_1 -> ObserveLandmark1_E_1
+PositionRow_1 -> ObserveLandmark1_W_1
+PositionCol_1 -> ObserveLandmark1_W_1
+PositionRow_1 -> ObserveLandmark2_N_1
+PositionCol_1 -> ObserveLandmark2_N_1
+PositionRow_1 -> ObserveLandmark2_S_1
+PositionCol_1 -> ObserveLandmark2_S_1
+PositionRow_1 -> ObserveLandmark2_E_1
+PositionCol_1 -> ObserveLandmark2_E_1
+PositionRow_1 -> ObserveLandmark2_W_1
+PositionCol_1 -> ObserveLandmark2_W_1
+PositionRow_2 -> ObserveWall_N_2
+PositionCol_2 -> ObserveWall_N_2
+PositionRow_2 -> ObserveWall_S_2
+PositionCol_2 -> ObserveWall_S_2
+PositionRow_2 -> ObserveWall_E_2
+PositionCol_2 -> ObserveWall_E_2
+PositionRow_2 -> ObserveWall_W_2
+PositionCol_2 -> ObserveWall_W_2
+PositionRow_2 -> ObserveLandmark1_N_2
+PositionCol_2 -> ObserveLandmark1_N_2
+PositionRow_2 -> ObserveLandmark1_S_2
+PositionCol_2 -> ObserveLandmark1_S_2
+PositionRow_2 -> ObserveLandmark1_E_2
+PositionCol_2 -> ObserveLandmark1_E_2
+PositionRow_2 -> ObserveLandmark1_W_2
+PositionCol_2 -> ObserveLandmark1_W_2
+PositionRow_2 -> ObserveLandmark2_N_2
+PositionCol_2 -> ObserveLandmark2_N_2
+PositionRow_2 -> ObserveLandmark2_S_2
+PositionCol_2 -> ObserveLandmark2_S_2
+PositionRow_2 -> ObserveLandmark2_E_2
+PositionCol_2 -> ObserveLandmark2_E_2
+PositionRow_2 -> ObserveLandmark2_W_2
+PositionCol_2 -> ObserveLandmark2_W_2
+PositionRow_3 -> ObserveWall_N_3
+PositionCol_3 -> ObserveWall_N_3
+PositionRow_3 -> ObserveWall_S_3
+PositionCol_3 -> ObserveWall_S_3
+PositionRow_3 -> ObserveWall_E_3
+PositionCol_3 -> ObserveWall_E_3
+PositionRow_3 -> ObserveWall_W_3
+PositionCol_3 -> ObserveWall_W_3
+PositionRow_3 -> ObserveLandmark1_N_3
+PositionCol_3 -> ObserveLandmark1_N_3
+PositionRow_3 -> ObserveLandmark1_S_3
+PositionCol_3 -> ObserveLandmark1_S_3
+PositionRow_3 -> ObserveLandmark1_E_3
+PositionCol_3 -> ObserveLandmark1_E_3
+PositionRow_3 -> ObserveLandmark1_W_3
+PositionCol_3 -> ObserveLandmark1_W_3
+PositionRow_3 -> ObserveLandmark2_N_3
+PositionCol_3 -> ObserveLandmark2_N_3
+PositionRow_3 -> ObserveLandmark2_S_3
+PositionCol_3 -> ObserveLandmark2_S_3
+PositionRow_3 -> ObserveLandmark2_E_3
+PositionCol_3 -> ObserveLandmark2_E_3
+PositionRow_3 -> ObserveLandmark2_W_3
+PositionCol_3 -> ObserveLandmark2_W_3
+PositionRow_4 -> ObserveWall_N_4
+PositionCol_4 -> ObserveWall_N_4
+PositionRow_4 -> ObserveWall_S_4
+PositionCol_4 -> ObserveWall_S_4
+PositionRow_4 -> ObserveWall_E_4
+PositionCol_4 -> ObserveWall_E_4
+PositionRow_4 -> ObserveWall_W_4
+PositionCol_4 -> ObserveWall_W_4
+PositionRow_4 -> ObserveLandmark1_N_4
+PositionCol_4 -> ObserveLandmark1_N_4
+PositionRow_4 -> ObserveLandmark1_S_4
+PositionCol_4 -> ObserveLandmark1_S_4
+PositionRow_4 -> ObserveLandmark1_E_4
+PositionCol_4 -> ObserveLandmark1_E_4
+PositionRow_4 -> ObserveLandmark1_W_4
+PositionCol_4 -> ObserveLandmark1_W_4
+PositionRow_4 -> ObserveLandmark2_N_4
+PositionCol_4 -> ObserveLandmark2_N_4
+PositionRow_4 -> ObserveLandmark2_S_4
+PositionCol_4 -> ObserveLandmark2_S_4
+PositionRow_4 -> ObserveLandmark2_E_4
+PositionCol_4 -> ObserveLandmark2_E_4
+PositionRow_4 -> ObserveLandmark2_W_4
+PositionCol_4 -> ObserveLandmark2_W_4
+PositionRow_5 -> ObserveWall_N_5
+PositionCol_5 -> ObserveWall_N_5
+PositionRow_5 -> ObserveWall_S_5
+PositionCol_5 -> ObserveWall_S_5
+PositionRow_5 -> ObserveWall_E_5
+PositionCol_5 -> ObserveWall_E_5
+PositionRow_5 -> ObserveWall_W_5
+PositionCol_5 -> ObserveWall_W_5
+PositionRow_5 -> ObserveLandmark1_N_5
+PositionCol_5 -> ObserveLandmark1_N_5
+PositionRow_5 -> ObserveLandmark1_S_5
+PositionCol_5 -> ObserveLandmark1_S_5
+PositionRow_5 -> ObserveLandmark1_E_5
+PositionCol_5 -> ObserveLandmark1_E_5
+PositionRow_5 -> ObserveLandmark1_W_5
+PositionCol_5 -> ObserveLandmark1_W_5
+PositionRow_5 -> ObserveLandmark2_N_5
+PositionCol_5 -> ObserveLandmark2_N_5
+PositionRow_5 -> ObserveLandmark2_S_5
+PositionCol_5 -> ObserveLandmark2_S_5
+PositionRow_5 -> ObserveLandmark2_E_5
+PositionCol_5 -> ObserveLandmark2_E_5
+PositionRow_5 -> ObserveLandmark2_W_5
+PositionCol_5 -> ObserveLandmark2_W_5
+PositionRow_6 -> ObserveWall_N_6
+PositionCol_6 -> ObserveWall_N_6
+PositionRow_6 -> ObserveWall_S_6
+PositionCol_6 -> ObserveWall_S_6
+PositionRow_6 -> ObserveWall_E_6
+PositionCol_6 -> ObserveWall_E_6
+PositionRow_6 -> ObserveWall_W_6
+PositionCol_6 -> ObserveWall_W_6
+PositionRow_6 -> ObserveLandmark1_N_6
+PositionCol_6 -> ObserveLandmark1_N_6
+PositionRow_6 -> ObserveLandmark1_S_6
+PositionCol_6 -> ObserveLandmark1_S_6
+PositionRow_6 -> ObserveLandmark1_E_6
+PositionCol_6 -> ObserveLandmark1_E_6
+PositionRow_6 -> ObserveLandmark1_W_6
+PositionCol_6 -> ObserveLandmark1_W_6
+PositionRow_6 -> ObserveLandmark2_N_6
+PositionCol_6 -> ObserveLandmark2_N_6
+PositionRow_6 -> ObserveLandmark2_S_6
+PositionCol_6 -> ObserveLandmark2_S_6
+PositionRow_6 -> ObserveLandmark2_E_6
+PositionCol_6 -> ObserveLandmark2_E_6
+PositionRow_6 -> ObserveLandmark2_W_6
+PositionCol_6 -> ObserveLandmark2_W_6
+PositionRow_7 -> ObserveWall_N_7
+PositionCol_7 -> ObserveWall_N_7
+PositionRow_7 -> ObserveWall_S_7
+PositionCol_7 -> ObserveWall_S_7
+PositionRow_7 -> ObserveWall_E_7
+PositionCol_7 -> ObserveWall_E_7
+PositionRow_7 -> ObserveWall_W_7
+PositionCol_7 -> ObserveWall_W_7
+PositionRow_7 -> ObserveLandmark1_N_7
+PositionCol_7 -> ObserveLandmark1_N_7
+PositionRow_7 -> ObserveLandmark1_S_7
+PositionCol_7 -> ObserveLandmark1_S_7
+PositionRow_7 -> ObserveLandmark1_E_7
+PositionCol_7 -> ObserveLandmark1_E_7
+PositionRow_7 -> ObserveLandmark1_W_7
+PositionCol_7 -> ObserveLandmark1_W_7
+PositionRow_7 -> ObserveLandmark2_N_7
+PositionCol_7 -> ObserveLandmark2_N_7
+PositionRow_7 -> ObserveLandmark2_S_7
+PositionCol_7 -> ObserveLandmark2_S_7
+PositionRow_7 -> ObserveLandmark2_E_7
+PositionCol_7 -> ObserveLandmark2_E_7
+PositionRow_7 -> ObserveLandmark2_W_7
+PositionCol_7 -> ObserveLandmark2_W_7
+PositionRow_8 -> ObserveWall_N_8
+PositionCol_8 -> ObserveWall_N_8
+PositionRow_8 -> ObserveWall_S_8
+PositionCol_8 -> ObserveWall_S_8
+PositionRow_8 -> ObserveWall_E_8
+PositionCol_8 -> ObserveWall_E_8
+PositionRow_8 -> ObserveWall_W_8
+PositionCol_8 -> ObserveWall_W_8
+PositionRow_8 -> ObserveLandmark1_N_8
+PositionCol_8 -> ObserveLandmark1_N_8
+PositionRow_8 -> ObserveLandmark1_S_8
+PositionCol_8 -> ObserveLandmark1_S_8
+PositionRow_8 -> ObserveLandmark1_E_8
+PositionCol_8 -> ObserveLandmark1_E_8
+PositionRow_8 -> ObserveLandmark1_W_8
+PositionCol_8 -> ObserveLandmark1_W_8
+PositionRow_8 -> ObserveLandmark2_N_8
+PositionCol_8 -> ObserveLandmark2_N_8
+PositionRow_8 -> ObserveLandmark2_S_8
+PositionCol_8 -> ObserveLandmark2_S_8
+PositionRow_8 -> ObserveLandmark2_E_8
+PositionCol_8 -> ObserveLandmark2_E_8
+PositionRow_8 -> ObserveLandmark2_W_8
+PositionCol_8 -> ObserveLandmark2_W_8
+PositionRow_9 -> ObserveWall_N_9
+PositionCol_9 -> ObserveWall_N_9
+PositionRow_9 -> ObserveWall_S_9
+PositionCol_9 -> ObserveWall_S_9
+PositionRow_9 -> ObserveWall_E_9
+PositionCol_9 -> ObserveWall_E_9
+PositionRow_9 -> ObserveWall_W_9
+PositionCol_9 -> ObserveWall_W_9
+PositionRow_9 -> ObserveLandmark1_N_9
+PositionCol_9 -> ObserveLandmark1_N_9
+PositionRow_9 -> ObserveLandmark1_S_9
+PositionCol_9 -> ObserveLandmark1_S_9
+PositionRow_9 -> ObserveLandmark1_E_9
+PositionCol_9 -> ObserveLandmark1_E_9
+PositionRow_9 -> ObserveLandmark1_W_9
+PositionCol_9 -> ObserveLandmark1_W_9
+PositionRow_9 -> ObserveLandmark2_N_9
+PositionCol_9 -> ObserveLandmark2_N_9
+PositionRow_9 -> ObserveLandmark2_S_9
+PositionCol_9 -> ObserveLandmark2_S_9
+PositionRow_9 -> ObserveLandmark2_E_9
+PositionCol_9 -> ObserveLandmark2_E_9
+PositionRow_9 -> ObserveLandmark2_W_9
+PositionCol_9 -> ObserveLandmark2_W_9

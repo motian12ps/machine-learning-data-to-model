@@ -1,0 +1,482 @@
+#!/usr/bin/env python
+## -*- coding: utf-8 -*-
+#
+#
+# @Tianyi Chen March 28, 2015
+
+import sys
+import numpy
+
+
+def readFile(argv):
+	
+	#check whether input file is sufficient or not
+	if len(argv)<4:
+		print "please input enough files"
+		exit()
+
+	#read network-structure data
+	data_network=open(argv[1],"r").readlines()
+	data_training=open(argv[2],"r").readlines()
+	num_variables=int(data_network[0])
+	#print num_variables
+
+	return data_network,data_training
+
+
+#get Dimensions of various variables, like row, column, wall, landmark, time_step, trajectories
+def getDimension(data_network,data_training):
+
+	dimensionList={}
+	dimension_rows=-1
+	dimension_columns=-1
+	dimension_actions=-1
+	dimension_wall=-1
+	dimension_landmark=-1
+	dimension_time_step=-1
+	dimension_trajectories=-1
+	actionList=[]
+
+
+	#get the dimension of rows
+	for line in data_network:
+		#string.find(str) return -1 when str is not in string, otherwise return the lowest index of str in string
+		if line.find("PositionRow")!=-1:
+			line_split=line.replace("\n","").split(",")
+			dimension_rows=int(line_split[len(line_split)-1])
+			break
+
+	dimensionList["dimension_rows"]=dimension_rows
+
+	#get the dimension of columns
+	for line in data_network:
+		if line.find("PositionCol")!=-1:
+			line_split=line.replace("\n","").split(",")
+			dimension_columns=int(line_split[len(line_split)-1])
+			break
+
+	dimensionList["dimension_columns"]=dimension_columns
+
+	#get the dimension of time_step
+	count=0
+	for line in data_network:
+		if line.startswith("PositionRow") and line.find("->")==-1:
+			count=count+1
+	dimension_time_step=int(count)
+
+	dimensionList["dimension_time_step"]=dimension_time_step
+
+	#get the dimension of action
+	for line in data_network:
+		if line.find("Action")!=-1:
+			line_split=line.replace("\n","").split(" ")
+			actionList=line_split[1].split(",")
+			dimension_actions=len(actionList)
+			break
+
+	dimensionList["dimension_actions"]=dimension_actions
+
+	#get the dimension of wall
+	for line in data_network:
+		if line.find("Wall")!=-1 and line.find("->")==-1:
+			line_split=line.replace("\n","").split("_")
+			if line_split[0][len(line_split[0])-1]=="l":
+				dimension_wall=1
+				break
+			else:
+				dimension_wall=int(line_split[0][len(line_split[0])-1]) 
+
+	dimensionList["dimension_wall"]=dimension_wall
+
+	#get the dimension of landmark
+	for line in data_network:
+		if line.find("Landmark")!=-1 and line.find("->")==-1:
+			line_split=line.replace("\n","").split("_")
+			if line_split[0][len(line_split[0])-1]=="k":
+				dimension_landmark=1
+				break
+			else:
+				dimension_landmark=int(line_split[0][len(line_split[0])-1]) 
+
+	dimensionList["dimension_landmark"]=dimension_landmark
+
+	#get the dimension of trajectories
+	last_line=data_training[len(data_training)-1]
+	dimension_trajectories=int(last_line.split(" ")[0])
+	dimensionList["dimension_trajectories"]=dimension_trajectories
+	directionList=["N","S","E","W"]
+
+	return dimensionList,actionList,directionList
+
+def estimateCPT(data_training,dimensionList,actionList,directionList):
+
+	#estimateCPT of postition|postition action
+	positionCPT={}
+
+	#countOfCPT
+	countPositionCpt1={}
+	countPositionCpt2={}
+	countPositionCpt3={}
+	countPositionCpt4={}
+	countPositionCpt5={}
+	countPositionCpt6={}
+
+	countPositionCpt1["name"]="PositionRow_t=i+1|PositionRow_t-1=i"
+	countPositionCpt2["name"]="PositionRow_t=i-1|PositionRow_t-1=i"
+	countPositionCpt3["name"]="PositionRow_t=i|PositionRow_t-1=i"
+	countPositionCpt4["name"]="PositionCol_t=j+1|PositionCol_t-1=j"
+	countPositionCpt5["name"]="PositionCol_t=j-1|PositionCol_t-1=j"
+	countPositionCpt6["name"]="PositionCol_t=j|PositionCol_t-1=j"
+
+	#initialize the postion CPT, that is flat prior process
+	#actionList=[]
+	for action in actionList:
+
+		countPositionCpt1[action]=0		
+		countPositionCpt2[action]=0
+		countPositionCpt3[action]=0
+		countPositionCpt4[action]=0
+		countPositionCpt5[action]=0
+		countPositionCpt6[action]=0
+
+	#print countPositionCpt1,countPositionCpt2,countPositionCpt3,countPositionCpt4,countPositionCpt5,countPositionCpt6
+
+	#store t-1 time step conditions of node
+	condition_0={}
+
+	#store t time step conditions 
+	condition_1={}
+
+
+	current_trajectory=None
+
+	for line in data_training:
+
+		line_split=line.replace("\n","").split(" ")
+
+		#check whether the current line is a new trajectory
+		#if current line is a new trajectory 
+		
+		if int(line_split[0])<=dimensionList["dimension_trajectories"] and line_split[0] != current_trajectory:
+			current_trajectory=line_split[0]
+			line_position_row=str(line_split[2]).split("=")[-1]
+			condition_0["PositionRow"]=int(line_position_row)
+			line_position_column=str(line_split[3]).split("=")[-1]
+			condition_0["PositionCol"]=int(line_position_column)
+			line_action=str(line_split[4]).split("=")[-1]
+			condition_0["Action"]=line_action
+			continue
+			#print condition_0
+
+		#get the current line information
+		line_position_row=str(line_split[2]).split("=")[-1]
+		condition_1["PositionRow"]=int(line_position_row)
+
+		line_position_column=str(line_split[3]).split("=")[-1]
+		condition_1["PositionCol"]=int(line_position_column)
+
+		line_action=str(line_split[4]).split("=")[-1]
+		condition_1["Action"]=line_action
+
+		#print "..................................."
+		#print "last condition:",condition_0
+		#print "    "
+		#print "current condition:",condition_1
+
+		#check which condition is what the current line present.
+		if condition_1["PositionRow"]-condition_0["PositionRow"]==1:
+			countPositionCpt1[condition_0["Action"]]=countPositionCpt1[condition_0["Action"]]+1
+		elif condition_1["PositionRow"]-condition_0["PositionRow"]==-1:
+			countPositionCpt2[condition_0["Action"]]=countPositionCpt2[condition_0["Action"]]+1
+		elif condition_1["PositionRow"]-condition_0["PositionRow"]==0:
+			countPositionCpt3[condition_0["Action"]]=countPositionCpt3[condition_0["Action"]]+1
+		#wrap condition
+		elif condition_1["PositionRow"]-condition_0["PositionRow"]==9:
+			countPositionCpt2[condition_0["Action"]]=countPositionCpt2[condition_0["Action"]]+1
+		elif condition_1["PositionRow"]-condition_0["PositionRow"]==-9:
+			countPositionCpt1[condition_0["Action"]]=countPositionCpt1[condition_0["Action"]]+1
+
+		if condition_1["PositionCol"]-condition_0["PositionCol"]==1:
+			countPositionCpt4[condition_0["Action"]]=countPositionCpt4[condition_0["Action"]]+1
+		elif condition_1["PositionCol"]-condition_0["PositionCol"]==-1:
+			countPositionCpt5[condition_0["Action"]]=countPositionCpt5[condition_0["Action"]]+1
+		elif condition_1["PositionCol"]-condition_0["PositionCol"]==0:
+			countPositionCpt6[condition_0["Action"]]=countPositionCpt6[condition_0["Action"]]+1
+		#wrap condition	
+		elif condition_1["PositionCol"]-condition_0["PositionCol"]==-9:
+			countPositionCpt4[condition_0["Action"]]=countPositionCpt4[condition_0["Action"]]+1
+		elif condition_1["PositionCol"]-condition_0["PositionCol"]==9:
+			countPositionCpt5[condition_0["Action"]]=countPositionCpt5[condition_0["Action"]]+1
+
+		condition_0["PositionRow"]=condition_1["PositionRow"]
+		condition_0["PositionCol"]=condition_1["PositionCol"]
+		condition_0["Action"]=condition_1["Action"]
+
+	for action in actionList:
+
+		sum1=float(countPositionCpt1[action]+countPositionCpt2[action]+countPositionCpt3[action])
+		positionCPT["PositionRow_t=i+1|PositionRow_t-1=i,Action_t-1="+action]=float(countPositionCpt1[action])/sum1
+		positionCPT["PositionRow_t=i-1|PositionRow_t-1=i,Action_t-1="+action]=float(countPositionCpt2[action])/sum1
+		positionCPT["PositionRow_t=i|PositionRow_t-1=i,Action_t-1="+action]=float(countPositionCpt3[action])/sum1
+
+		sum2=float(countPositionCpt4[action]+countPositionCpt5[action]+countPositionCpt6[action])
+		positionCPT["PositionCol_t=j+1|PositionCol_t-1=j,Action_t-1="+action]=float(countPositionCpt4[action])/sum2
+		positionCPT["PositionCol_t=j-1|PositionCol_t-1=j,Action_t-1="+action]=float(countPositionCpt5[action])/sum2
+		positionCPT["PositionCol_t=j|PositionCol_t-1=j,Action_t-1="+action]=float(countPositionCpt6[action])/sum2
+
+
+
+	#estimate observation_t | positionRow_t, positionCol_t
+	observationCPT={}
+
+	#count of observationCPT
+	countObservationCPT1={}
+	countObservationCPT2={}
+	countObservationCPT3={}
+	countObservationCPT4={}
+
+
+	#estimate the CPT of observation | position
+
+	wallCPT={}
+	lanmark1CPT={}
+	lanmark2CPT={}
+	lanmark3CPT={}
+
+	countWallCPT={}
+	countLandmark1CPT={}
+	countLandmark2CPT={}
+	countLandmark3CPT={}
+	countPosition={}
+
+	#initialize counter, add flat prior
+	for row in range(1,dimensionList["dimension_rows"]+1):
+		for col in range(1,dimensionList["dimension_columns"]+1):
+			countPosition["PositionRow="+str(row)+",PositionCol="+str(col)]=0
+			for direction in ["E","W","S","N"]:
+				countWallCPT["ObserveWall_"+direction+"|"+"PositionRow="+str(row)+",PositionCol="+str(col)]=1
+				countLandmark1CPT["ObserveLandmark1_"+direction+"|"+"PositionRow="+str(row)+",PositionCol="+str(col)]=1
+				countLandmark2CPT["ObserveLandmark2_"+direction+"|"+"PositionRow="+str(row)+",PositionCol="+str(col)]=1
+
+				if dimensionList["dimension_rows"]==15:
+					countLandmark3CPT["ObserveLandmark3_"+direction+"|"+"PositionRow="+str(row)+",PositionCol="+str(col)]=1
+
+	condition_2={}
+	
+	for line in data_training:
+		line_split=line.replace("\n","").split(" ")
+		condition_2["PositionRow"]=int(str(line_split[2]).split("=")[-1])
+		condition_2["PositionCol"]=int(str(line_split[3]).split("=")[-1])
+		
+		#flat prior
+		countPosition["PositionRow="+str(condition_2["PositionRow"])+",PositionCol="+str(condition_2["PositionCol"])]+=1
+
+		for entry in line_split:
+			if entry.find("ObserveWall")!=-1:
+				condition_2["ObserveWall"]=entry[len("ObserveWall")+1]
+				countWallCPT["ObserveWall_"+condition_2["ObserveWall"]+"|PositionRow="+str(condition_2["PositionRow"])+\
+				",PositionCol="+str(condition_2["PositionCol"])]+=1
+			if entry.find("ObserveLandmark1")!=-1:
+				condition_2["ObserveLandmark1"]=entry[len("ObserveLandmark1")+1]
+				countLandmark1CPT["ObserveLandmark1_"+condition_2["ObserveLandmark1"]+"|PositionRow="+str(condition_2["PositionRow"])+\
+				",PositionCol="+str(condition_2["PositionCol"])]+=1
+			if entry.find("ObserveLandmark2")!=-1:
+				condition_2["ObserveLandmark2"]=entry[len("ObserveLandmark2")+1]
+				#print str(condition_2["PositionRow"]),str(condition_2["PositionCol"])
+				countLandmark2CPT["ObserveLandmark2_"+condition_2["ObserveLandmark2"]+"|PositionRow="+str(condition_2["PositionRow"])+\
+				",PositionCol="+str(condition_2["PositionCol"])]+=1
+				#print countLandmark2CPT["ObserveLandmark2_"+condition_2["ObserveLandmark2"]+"|PositionRow="+str(condition_2["PositionRow"])+",PositionCol="+str(condition_2["PositionCol"])]
+		#print condition_2
+			if entry.find("ObserveLandmark3")!=-1:
+				condition_2["ObserveLandmark3"]=entry[len("ObserveLandmark3")+1]
+				countLandmark3CPT["ObserveLandmark3_"+condition_2["ObserveLandmark3"]+"|PositionRow="+str(condition_2["PositionRow"])+\
+				",PositionCol="+str(condition_2["PositionCol"])]+=1
+	#print countLandmark1CPT["ObserveLandmark1_W|PositionRow=2,PositionCol=7"]
+	# print countLandmark2CPT["ObserveLandmark2_E|PositionRow=9,PositionCol=6"]
+	# print countLandmark1CPT
+	# print countLandmark2CPT["ObserveLandmark2_N|PositionRow=7,PositionCol=5"]
+	# print countLandmark1CPT["ObserveLandmark1_S|PositionRow=9,PositionCol=7"]
+	# print countPosition
+
+	for row in range(1,dimensionList["dimension_rows"]+1):
+		for col in range(1,dimensionList["dimension_columns"]+1):
+			sum1=countPosition["PositionRow="+str(row)+",PositionCol="+str(col)]
+			for direction in directionList:
+				variableWall="ObserveWall_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)
+				variableLandmark1="ObserveLandmark1_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)
+				variableLandmark2="ObserveLandmark2_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)
+				variableLandmark3="ObserveLandmark3_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)
+				observationCPT[variableWall]=float(countWallCPT[variableWall])/float(sum1)
+				observationCPT[variableLandmark1]=float(countLandmark1CPT[variableLandmark1])/float(sum1)
+				observationCPT[variableLandmark2]=float(countLandmark2CPT[variableLandmark2])/float(sum1)
+				if dimensionList["dimension_rows"]==15:
+					observationCPT[variableLandmark3]=float(countLandmark3CPT[variableLandmark3])/float(sum1)
+				#print observationCPT[variableWall],observationCPT[variableLandmark1],observationCPT[variableLandmark2]
+
+	return positionCPT,observationCPT
+	# var="ObserveWall_E|PositionRow=3,PositionCol=1"
+	# var1="ObserveLandmark1_N|PositionRow=2,PositionCol=10"
+	# var2="ObserveLandmark2_W|PositionRow=2,PositionCol=9"
+	# print observationCPT[var],observationCPT[var1],observationCPT[var2]			
+				
+def outputCPT(positionCPT,observationCPT,dimensionList,actionList,directionList):
+
+	outputFile=open(sys.argv[3], "w")
+	#output cpt of position given position and action
+	#time step 0,1,2,3,4,5,6,7,8,9
+	for time_step in range(0,dimensionList["dimension_time_step"]-1):
+		for row in range(1,dimensionList["dimension_rows"]+1):
+			for action in actionList:
+				if action=="MoveNorth":
+					nextrow=nextIndexIfMove(row,action,dimensionList,"row")
+					outputFile.write("PositionRow_"+str(time_step+1)+"="+str(nextrow)+" PositionRow_"+\
+						str(time_step)+"="+str(row)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionRow_t=i+1|PositionRow_t-1=i,Action_t-1=MoveNorth"])+"\n")
+					outputFile.write("PositionRow_"+str(time_step+1)+"="+str(row)+" PositionRow_"+\
+						str(time_step)+"="+str(row)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionRow_t=i|PositionRow_t-1=i,Action_t-1=MoveNorth"])+"\n")
+				elif action=="MoveSouth":
+					nextrow=nextIndexIfMove(row,action,dimensionList,"row")
+					outputFile.write("PositionRow_"+str(time_step+1)+"="+str(nextrow)+" PositionRow_"+\
+						str(time_step)+"="+str(row)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionRow_t=i-1|PositionRow_t-1=i,Action_t-1=MoveSouth"])+"\n")
+					outputFile.write("PositionRow_"+str(time_step+1)+"="+str(row)+" PositionRow_"+\
+						str(time_step)+"="+str(row)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionRow_t=i|PositionRow_t-1=i,Action_t-1=MoveSouth"])+"\n")
+				elif action=="MoveWest":
+					nextrow=nextIndexIfMove(row,action,dimensionList,"row")
+					outputFile.write("PositionRow_"+str(time_step+1)+"="+str(nextrow)+" PositionRow_"+\
+						str(time_step)+"="+str(row)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionRow_t=i|PositionRow_t-1=i,Action_t-1=MoveWest"])+"\n")
+				elif action=="MoveEast":
+					nextrow=nextIndexIfMove(row,action,dimensionList,"row")
+					outputFile.write("PositionRow_"+str(time_step+1)+"="+str(nextrow)+" PositionRow_"+\
+						str(time_step)+"="+str(row)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionRow_t=i|PositionRow_t-1=i,Action_t-1=MoveEast"])+"\n")
+		for col in range(1,dimensionList["dimension_columns"]+1):
+			for action in actionList:
+				if action=="MoveNorth":
+					nextcol=nextIndexIfMove(col,action,dimensionList,"col")
+					outputFile.write("PositionCol_"+str(time_step+1)+"="+str(nextcol)+" PositionCol_"+\
+						str(time_step)+"="+str(col)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionCol_t=j|PositionCol_t-1=j,Action_t-1=MoveNorth"])+"\n")
+				elif action=="MoveSouth":
+					nextcol=nextIndexIfMove(col,action,dimensionList,"col")
+					outputFile.write("PositionCol_"+str(time_step+1)+"="+str(nextcol)+" PositionCol_"+\
+						str(time_step)+"="+str(col)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionCol_t=j|PositionCol_t-1=j,Action_t-1=MoveSouth"])+"\n")
+				elif action=="MoveEast":
+					nextcol=nextIndexIfMove(col,action,dimensionList,"col")
+					outputFile.write("PositionCol_"+str(time_step+1)+"="+str(nextcol)+" PositionCol_"+\
+						str(time_step)+"="+str(col)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionCol_t=j+1|PositionCol_t-1=j,Action_t-1=MoveEast"])+"\n")					
+					outputFile.write("PositionCol_"+str(time_step+1)+"="+str(col)+" PositionCol_"+\
+						str(time_step)+"="+str(col)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionCol_t=j|PositionCol_t-1=j,Action_t-1=MoveEast"])+"\n")
+				elif action=="MoveWest":
+					nextcol=nextIndexIfMove(col,action,dimensionList,"col")
+					outputFile.write("PositionCol_"+str(time_step+1)+"="+str(nextcol)+" PositionCol_"+\
+						str(time_step)+"="+str(col)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionCol_t=j-1|PositionCol_t-1=j,Action_t-1=MoveWest"])+"\n")					
+					outputFile.write("PositionCol_"+str(time_step+1)+"="+str(col)+" PositionCol_"+\
+						str(time_step)+"="+str(col)+",Action_"+str(time_step)+"="+action+" "+\
+						str(positionCPT["PositionCol_t=j|PositionCol_t-1=j,Action_t-1=MoveWest"])+"\n")
+
+
+	for time_step in range(0,dimensionList["dimension_time_step"]):
+		for row in range(1,dimensionList["dimension_rows"]+1):
+			for col in range(1,dimensionList["dimension_columns"]+1):
+				for direction in directionList:
+
+					outputFile.write("ObserveWall_"+direction+"_"+str(time_step)+"=Yes PositionRow_"+\
+						str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+						str(observationCPT["ObserveWall_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+
+					outputFile.write("ObserveWall_"+direction+"_"+str(time_step)+"=No PositionRow_"+\
+						str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+						str(1-observationCPT["ObserveWall_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+
+				for direction in directionList:
+
+					outputFile.write("ObserveLandmark1_"+direction+"_"+str(time_step)+"=Yes PositionRow_"+\
+						str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+						str(observationCPT["ObserveLandmark1_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+
+					outputFile.write("ObserveLandmark1_"+direction+"_"+str(time_step)+"=No PositionRow_"+\
+						str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+						str(1-observationCPT["ObserveLandmark1_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+
+				for direction in directionList:
+
+					outputFile.write("ObserveLandmark2_"+direction+"_"+str(time_step)+"=Yes PositionRow_"+\
+						str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+						str(observationCPT["ObserveLandmark2_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+
+					outputFile.write("ObserveLandmark2_"+direction+"_"+str(time_step)+"=No PositionRow_"+\
+						str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+						str(1-observationCPT["ObserveLandmark2_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+
+				if dimensionList["dimension_rows"]==15:
+					for direction in directionList:
+
+						outputFile.write("ObserveLandmark3_"+direction+"_"+str(time_step)+"=Yes PositionRow_"+\
+							str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+							str(observationCPT["ObserveLandmark3_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+
+						outputFile.write("ObserveLandmark3_"+direction+"_"+str(time_step)+"=No PositionRow_"+\
+							str(time_step)+"="+str(row)+",PositionCol_"+str(time_step)+"="+str(col)+" "+\
+							str(1-observationCPT["ObserveLandmark3_"+direction+"|PositionRow="+str(row)+",PositionCol="+str(col)])+"\n")
+	print "We are done!"
+ 	outputFile.close();
+
+
+def nextIndexIfMove(index_row_or_col,action,dimensionList,flag):
+	if flag=="row":
+		if action=="MoveNorth":
+			if index_row_or_col == dimensionList["dimension_rows"]:
+				return 1
+			else:
+				return index_row_or_col+1
+		elif action=="MoveSouth":
+			if index_row_or_col == 1:
+				return dimensionList["dimension_rows"]
+			else:
+				return index_row_or_col-1
+		elif action=="MoveWest":
+			return index_row_or_col
+		elif action=="MoveEast":
+			return index_row_or_col
+	elif flag=="col":
+		if action=="MoveNorth":
+			return index_row_or_col
+		elif action=="MoveSouth":
+			return index_row_or_col
+		elif action=="MoveWest":
+			if index_row_or_col==1:
+				return dimensionList["dimension_columns"]
+			else:
+				return index_row_or_col-1
+		elif action=="MoveEast":
+			if index_row_or_col==dimensionList["dimension_columns"]:
+				return 1
+			else:
+				return index_row_or_col+1
+
+
+
+
+def main(argv):
+
+	#read file
+	data_network,data_training=readFile(argv)
+
+	dimensionList,actionList,directionList=getDimension(data_network,data_training)
+
+	positionCPT,observationCPT=estimateCPT(data_training,dimensionList,actionList,directionList)
+
+	#print positionCPT,len(positionCPT)
+	outputCPT(positionCPT,observationCPT,dimensionList,actionList,directionList)
+	#print observationCPT
+
+if __name__ == "__main__":
+	main(sys.argv)

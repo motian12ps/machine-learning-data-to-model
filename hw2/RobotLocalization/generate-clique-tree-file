@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+## -*- coding: utf-8 -*-
+
+import sys
+import numpy
+
+class Node(object):
+	"""docstring for Node"""
+	def addneighbor(self, nb):
+		self.neighbor.append(nb)
+
+	def __init__(self, name):
+		super(Node, self).__init__()
+		self.name = name
+		self.neighbor = []
+
+def main(argv):
+
+	#Initialize the network with nodes
+	
+	if len(argv)==3:
+		inputfilename=argv[1]
+		outputfilename=argv[2]
+	else:
+		inputfilename = 'network-grid15x15-t100.txt'
+		outputfilename = 'cliquetree-grid15x15-t100.txt'
+
+	nodeDict = {}
+	Tmax = 0
+	nLandmark = 0
+	with open(inputfilename, 'r') as f:	
+		num_nodes = int(f.readline())
+		for i in range(num_nodes):
+			nodename = f.readline().split(' ')[0]
+			nodeDict[nodename] = Node(nodename)
+			if 'Action_' in nodename:
+				t = int(nodename[nodename.rfind('_') + 1:])
+				if Tmax < t:
+					Tmax = t
+			if 'ObserveLandmark' in nodename:
+				t = int(nodename[nodename.rfind('Landmark') + 8: nodename.find('_')])
+				if nLandmark < t:
+					nLandmark = t
+
+		for line in f.readlines():
+			father, child = map(lambda arg: arg.strip(), line.split('->'))
+			# father = father.strip().map(lambda arg: arg.strip())
+			# child = child.strip()
+			nodeDict[father].addneighbor(child)
+			nodeDict[child].addneighbor(father)
+		# print nodeDict['ObserveLandmark2_N_9'].neighbor
+
+	output(outputfilename, nodeDict, Tmax, nLandmark)
+	return
+
+def output(outputfilename, nodeDict, Tmax, nLandmark):
+	directions = ['N', 'S', 'E', 'W']
+	with open(outputfilename, 'w') as f:
+		f.write(str((Tmax +1) * (2 + 4 * (nLandmark+1)) - 1) + '\n')
+		#print Tmax
+		for i in range(Tmax ):
+			t = str(i)
+			nextt = str(i+1)
+			if i != Tmax-1:
+				line = 'Action_' + t + ',PositionRow_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt + '\n'
+				f.write(line)
+				line = 'Action_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt + ',PositionCol_' + nextt + '\n'
+				f.write(line)
+			else:
+				line1 = 'Action_' + t + ',PositionRow_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt+'\n'
+				f.write(line1)
+				line2 = 'Action_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt + ',PositionCol_' + nextt+'\n'
+				f.write(line2)
+			# if i!=Tmax:
+			for d in directions:
+				line = 'ObserveWall_' + d + '_' + t + ',PositionRow_' + t + ',PositionCol_' + t + '\n'
+				f.write(line)
+				for j in range(1, nLandmark + 1):
+					line = 'ObserveLandmark' + str(j) + '_' + d + '_' + t + ',PositionRow_' + t + ',PositionCol_' + t + '\n'
+					f.write(line)
+		for d in directions:
+			line = 'ObserveWall_' + d + '_' + str(Tmax) + ',PositionRow_' + str(Tmax) + ',PositionCol_' + str(Tmax) + '\n'
+			f.write(line)
+			for j in range(1,nLandmark + 1):
+				line = 'ObserveLandmark' + str(j) + '_' + d + '_' + str(Tmax) + ',PositionRow_' + str(Tmax) + ',PositionCol_' + str(Tmax) + '\n'
+				f.write(line)
+		line="Action_"+str(Tmax)+"\n"
+		f.write(line)			
+		for i in range(Tmax ):
+			t = str(i)
+			nextt = str(i+1)
+			if i != Tmax:
+				line1 = 'Action_' + t + ',PositionRow_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt
+				line2 = 'Action_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt + ',PositionCol_' + nextt
+				f.write(line1 + ' -- ' + line2 + '\n')
+
+			for d in directions:
+				if i != Tmax:
+					line1 = 'Action_' + t + ',PositionRow_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt
+				else:
+					line1 = 'Action_' + t + ',PositionRow_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt
+				line2 = 'ObserveWall_' + d + '_' + t + ',PositionRow_' + t + ',PositionCol_' + t
+				f.write(line1 + ' -- ' + line2 + '\n')
+				for j in range(1, nLandmark + 1):
+					line2 = 'ObserveLandmark' + str(j) + '_' + d + '_' + t + ',PositionRow_' + t + ',PositionCol_' + t 
+					f.write(line1 + ' -- ' + line2 + '\n')
+			line1 = 'Action_' + t + ',PositionCol_' + t + ',PositionRow_' + nextt + ',PositionCol_' + nextt
+			line2 = 'Action_' + nextt + ',PositionRow_' + nextt + ',PositionCol_' + nextt + ',PositionRow_' + str(int(nextt)+1)
+			if (int(nextt)+1)!=Tmax+1:
+				f.write(line1+' -- '+line2+'\n')
+		line1 = 'Action_' + str(Tmax-1) + ',PositionCol_' +str(Tmax-1) + ',PositionRow_' +str(Tmax) + ',PositionCol_'+ str(Tmax)
+		for d in directions:
+			line2 = 'ObserveWall_' + d + '_' + str(Tmax) + ',PositionRow_' + str(Tmax) + ',PositionCol_' + str(Tmax)
+			f.write(line1+' -- '+line2+'\n')
+			for j in range(1,nLandmark +1):
+				line2 = 'ObserveLandmark' + str(j) + '_' + d + '_' + str(Tmax) + ',PositionRow_' + str(Tmax) + ',PositionCol_' + str(Tmax)
+				f.write(line1 + ' -- ' + line2 + '\n')
+
+	print "We are done!"			
+	f.close()
+	return
+
+if __name__ == '__main__':
+	main(sys.argv)

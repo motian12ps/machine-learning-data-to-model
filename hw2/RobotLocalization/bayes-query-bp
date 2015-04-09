@@ -1,0 +1,442 @@
+#!/usr/bin/env python
+## -*- coding: utf-8 -*-
+#
+#@Tianyi Chen, Huizhan Lu April 8th,2015
+
+import sys
+import numpy
+from math import log,exp
+
+sys.setrecursionlimit(100000000)
+epsilon = 1e-100
+ninfi = -1e100
+
+class Clique(object):
+	"""docstring for Clique"""
+	def __init__(self, ID):
+		super(Clique, self).__init__()
+		self.belief={}
+		self.neighbor=[]
+		self.ID=ID
+		self.dfactors_keytype=None
+		self.factors=[]
+		self.dfactors={}
+
+	def __hash__(self):
+		return self.ID
+
+class Node(object):
+	"""docstring for Node"""
+	def __init__(self, ID):
+		super(Node, self).__init__()
+		self.ID = ID
+		self.cpd=[]
+		self.variable=[]
+
+
+'''initialize sepset belief'''
+def initMu(nodeDict, tup1, tup2):
+	result = {}
+	sharedkeys = []
+	for onekey in tup1:
+		if onekey in tup2:
+			sharedkeys.append(onekey)
+	if len(sharedkeys) == 2:
+		for v1 in nodeDict[sharedkeys[0]].variable:
+			for v2 in nodeDict[sharedkeys[1]].variable:
+				tup = tuple((v1, v2))
+				result[tup] = 1.0
+	elif len(sharedkeys) == 3:
+		for v1 in nodeDict[sharedkeys[0]].variable:
+			for v2 in nodeDict[sharedkeys[1]].variable:
+				for v3 in nodeDict[sharedkeys[2]].variable:
+					tup = tuple((v1,v2,v3))
+					result[tup] = 1.0
+	return result
+
+def readFile(argv):
+	if len(argv)>5:
+	 	print "Please input the effective files"
+	elif len(argv)<5:
+		networkFile=open("network-grid10x10-t10.txt","r").readlines()
+		cpdFile=open("cpd-grid10x10-t10.txt","r").readlines()
+	 	cliquetreeFile=open("cliquetree-grid10x10-t10.txt","r").readlines()
+	 	queriesFile=open("queries-grid10x10-t10.txt","r").readlines()
+	else:
+	 	networkFile=open(argv[1]).readlines()
+	 	cpdFile=open(argv[2]).readlines()
+	 	cliquetreeFile=open(argv[3]).readlines()
+	 	queriesFile=open(argv[4]).readlines()
+
+	nodeDict={}
+	cliqueDict={}
+	factorDict={}
+	edgeList={}
+
+	for (linecount1, line) in enumerate(networkFile):
+		if linecount1==0:
+			numOfNode = int(line.replace("\n",""))
+		elif linecount1 <= numOfNode:
+			linesplit=line.strip().split(' ')			
+			nodeDict[linesplit[0]]=Node(linesplit[0])
+			nodeDict[linesplit[0]].states=linesplit[1].split(',')
+			
+			for var in linesplit[1].split(","):
+				nodeDict[linesplit[0]].variable.append(var)
+			if "Action" in linesplit[0]:
+				nodeDict[linesplit[0]].cpd=assignUniform(nodeDict[linesplit[0]])
+
+	for line in cpdFile:
+
+		cpdDict={}
+		condDict={}
+
+		linesplit=line.split(" ")
+		linesplit1=linesplit[0].split("=")
+		linesplit2=linesplit[1].split(",")
+
+		nodename=linesplit1[0]
+		nodeState=linesplit1[1]
+
+		cpdDict["Name"]=nodename
+		cpdDict["State"]=nodeState
+		cpdDict["Prob"]=float(linesplit[-1])
+
+		for li in linesplit2:
+			condName=li.split("=")[0]
+			condValue=li.split("=")[1]
+			condDict[condName]=condValue
+		cpdDict["Cond"]=condDict
+		nodeDict[nodename].cpd.append(cpdDict)
+
+
+	for (linecount2, line) in enumerate(cliquetreeFile):
+		if linecount2 == 0 :
+			numOfNode = int(line.strip())
+		elif linecount2 <= numOfNode:
+			linesplit = line.strip().split(',')
+			tup = tuple(linesplit)
+			cliqueDict[tup] = Clique(tup)
+		else:
+			#print line
+			clique1, clique2 = line.split('--')
+
+			clique1 = clique1.strip()
+			clique2 = clique2.strip()
+			tup1 = tuple(clique1.strip().split(','))
+			tup2 = tuple(clique2.strip().split(','))
+			
+			cliqueDict[tup1].neighbor.append(tup2)
+			cliqueDict[tup2].neighbor.append(tup1)
+
+			tupforward = tuple((tup1, tup2))
+			edgeList[tupforward] = initMu(nodeDict, tup1, tup2)
+			# Do sepset again because the order might change
+			tupbackwward = tuple((tup2, tup1))
+			edgeList[tupbackwward] = edgeList[tupforward]
+
+	for cliqueName,clique in cliqueDict.iteritems():
+		# Giving PostionRow and PositionCol Uniform Probability
+		if 'Action' in cliqueName[0]:
+			if len(cliqueName) < 3:
+				continue
+			node0 = nodeDict[cliqueName[0]]
+			node1 = nodeDict[cliqueName[1]]
+			node2 = nodeDict[cliqueName[2]]
+			flatprob = 1.0/float(len(node0.variable) * len(node1.variable) * len(node2.variable))
+			for v0 in node0.variable:
+				for v1 in node1.variable:
+					for v2 in node2.variable:
+						clique.dfactors[tuple((v0, v1, v2))] = flatprob
+			if len(cliqueName) >3:
+				clique.factors.append(nodeDict[cliqueName[3]].cpd)
+		else:
+			node1 = nodeDict[cliqueName[1]]
+			node2 = nodeDict[cliqueName[2]]
+			flatprob = 1.0/float(len(node1.variable) * len(node2.variable))
+			for v1 in node1.variable:
+				for v2 in node2.variable:
+					clique.dfactors[tuple((v1, v2))] = flatprob
+			clique.factors.append(nodeDict[cliqueName[0]].cpd)
+
+	# Create dfactors, the factors in dictionary form
+	for cliqueName,clique in cliqueDict.iteritems():
+		if 'Observe' in cliqueName[0]:
+			clique.dfactors_keytype = tuple((cliqueName[0], cliqueName[1], cliqueName[2]))	
+		else:
+			if len(cliqueName) < 4:
+				continue
+			clique.dfactors_keytype = tuple((cliqueName[3], cliqueName[0], cliqueName[1]))
+
+		for f in clique.factors:
+			for ff in f:
+				tup = [ff['State']]
+				for vi in clique.dfactors_keytype[1:]:
+					tup.append(ff['Cond'][vi])
+
+				tup = tuple(tup)
+				clique.dfactors[tup] = ff['Prob']
+
+			tup = [ff['Name']]
+			if ff['Cond'] != None:
+				for cond in ff['Cond'].keys():
+					tup.append(cond)
+			tup = tuple(tup)
+			clique.dfactors_keytype = tup
+	#Since for this specific network, the for each clique, it only contains one factor, therefore, we just
+	#Skip the calulation of belief based on the factors of the clique			
+	
+	X=[]
+	Y=[]
+	querycount=0
+	for (linecount, line) in enumerate(queriesFile):
+		if line !="\n":
+			X.append({})
+			Y.append({})
+			linesplit=line.replace("\n","").split(" ")	
+			linesplit1=linesplit[0].split(",")
+			linesplit2=linesplit[-1].split(",")
+			for li in linesplit1:
+				X[querycount][li.split("=")[0]]=li.split("=")[1]
+
+			if linesplit2!=['']:
+			 	for li in linesplit2:
+			 		Y[querycount][li.split("=")[0]]=li.split("=")[1]
+			querycount+=1
+
+	return X,Y,cliqueDict,nodeDict,edgeList
+
+
+
+def assignUniform(node):
+	cpdList=[]
+	for var in node.variable:
+		cpdDict={}
+		cpdDict["Name"]=node.ID
+		cpdDict["State"]=var
+		cpdDict["Cond"]=None
+		cpdDict["Prob"]=float(1)/float(len(node.variable))
+		cpdList.append(cpdDict)
+	return cpdList
+
+'''upstream, downstream to calibrate'''
+def calibration(cliqueDict, nodeDict, edgeList, X, Y):
+	rootClique = cliqueDict[tuple('Action_0,PositionRow_0,PositionCol_0,PositionRow_1'.split(','))]
+	BP(cliqueDict, nodeDict, edgeList, rootClique, None)
+	return
+
+
+'''belief propagation(recursion)'''
+def BP(cliqueDict, nodeDict, edgeList, clique, fatherClique):
+	#Update this clique
+	if fatherClique != None:
+		#Gather sharedkeys and their indices in both cliques
+		sharedkeys = []
+		fatherindex = []
+		thisindex = []
+		for onekey in fatherClique.ID:
+			if onekey in clique.ID:
+				sharedkeys.append(onekey)
+				fatherindex.append(fatherClique.ID.index(onekey))
+				thisindex.append(clique.ID.index(onekey))
+		sharedkeys = tuple(sharedkeys)
+		fatherindex = tuple(fatherindex)
+		thisindex = tuple(thisindex)
+		l = len(sharedkeys)
+
+		premessage = {}
+		mu = edgeList[((fatherClique.ID, clique.ID))]
+
+		# Marginalize over the sepset and get premessage
+		belief = fatherClique.belief
+		for b in belief:
+			
+			if l == 2:
+				mkey = tuple((b[fatherindex[0]], b[fatherindex[1]]))
+			else:
+				mkey = tuple((b[fatherindex[0]], b[fatherindex[1]], b[fatherindex[2]]))
+			if mkey not in premessage:
+				premessage[mkey] = belief[b]
+			else:
+				premessage[mkey] = premessage[mkey] + belief[b]
+		
+		#Calculate new belief in this clique		
+		for b in clique.belief:
+			if l == 2:
+				mkey = tuple((b[thisindex[0]], b[thisindex[1]]))
+			else:
+				mkey = tuple((b[thisindex[0]], b[thisindex[1]], b[thisindex[2]]))
+			# newbelief[b] = clique.belief[b] * premessage[mkey]/mu[mkey]
+			if abs(mu[mkey]) < epsilon:
+				if abs(premessage[mkey]) < epsilon:
+					clique.belief[b] = clique.belief[b] * 0.0
+				else:
+					print "Error in premessage"
+			else:
+				clique.belief[b] = clique.belief[b] * premessage[mkey]/mu[mkey]
+		
+		#Update mu
+		for mkey in premessage:
+			if abs(mu[mkey]) < epsilon and abs(premessage[mkey]) < epsilon:
+				mu[mkey] = 0.0
+			else:
+				mu[mkey] = premessage[mkey]/mu[mkey]
+	else:
+		sep = {}
+
+	# Search neighbor(clique)/fatherClique
+	for nb in clique.neighbor:
+		if cliqueDict[nb] != fatherClique:
+			BP(cliqueDict, nodeDict, edgeList, cliqueDict[nb], clique)
+	return
+
+'''initialize belief'''
+def initBelief(nodeDict, cliqueDict, cliqueName):
+	clique = cliqueDict[cliqueName]
+	clique.belief = {}
+	variable = {}
+
+	# belief is a dictionary, its keys are in order of the nodes in the clique
+	# print cliqueName
+	# for f in clique.dfactors:
+	# 	print f, clique.dfactors[f]
+
+	# If contain 'Action' then P(v3|v0,v1) * P(v0,v1,v2), v3 and v1 should be adjacent
+	# else P(v0|v1,v2) * P(v1,v2)
+	if 'Observe' in cliqueName[0]:
+		for v1 in nodeDict[cliqueName[1]].variable:
+			for v2 in nodeDict[cliqueName[2]].variable:
+				tup = tuple((v1, v2))
+				for v0 in nodeDict[cliqueName[0]].variable:
+					tup_all = tuple((v0, v1, v2))
+					clique.belief[tup_all] = clique.dfactors[tup] * clique.dfactors[tup_all]
+	else:
+		#In case of Action, use CPD to update
+		if len(cliqueName) == 4:
+			for f in clique.factors[-1]:
+				v3 = f['State']
+				v0 = None
+				v1 = None
+				for k in f['Cond']:
+					if 'Action' in k:
+						v0 = f['Cond'][k]
+					else:
+						v1 = f['Cond'][k]
+				for v2 in nodeDict[cliqueName[2]].variable:
+					tup = tuple((v0, v1, v2))
+					tup_cpd = tuple((v3, v0, v1))
+					tup_all = tuple((v0, v1, v2, v3))
+					if tup_all not in clique.belief:
+						clique.belief[tup_all] = clique.dfactors[tup] * clique.dfactors[tup_cpd]
+					else:
+						clique.belief[tup_all] = clique.belief[tup_all] + clique.dfactors[tup] * clique.dfactors[tup_cpd]
+		else:
+			#Action_9: Do nothing since it is not connected to any other cliques
+			pass
+
+	Sum = 0.0
+	for b in clique.belief:
+		Sum = Sum + clique.belief[b]
+
+	return
+
+'''query'''
+def query(nodeDict, cliqueDict, edgeList, x):
+	rootClique = cliqueDict[tuple('Action_0,PositionRow_0,PositionCol_0,PositionRow_1'.split(','))]
+	xstar = {}
+	result = recquery(nodeDict, cliqueDict, edgeList, rootClique, None, xstar, x)
+	return result
+
+def recquery(nodeDict, cliqueDict, edgeList, clique, fatherClique, xstar, x):
+	def true_cond(b):
+		for i in range(len(condindex)):
+			if cond[i] != b[condindex[i]]:
+				return False
+		return True
+	def true_target(b):
+		for i in range(len(targetindex)):
+			if target[i] != b[targetindex[i]]:
+				return False
+		return True
+	
+	cond = []
+	condindex = []
+	for index, nodeName in enumerate(clique.ID):
+		if nodeName in xstar:
+			cond.append(xstar[nodeName])
+			condindex.append(index)
+
+	target = []
+	targetindex = []
+	for index, nodeName in enumerate(clique.ID):
+		if nodeName in x and nodeName not in xstar:
+			target.append(x[nodeName])
+			targetindex.append(index)
+
+	if len(targetindex) != 0:
+		p_targ_cond = 0.0
+		p_cond = 0.0
+		for b in clique.belief:
+			if true_cond(b):
+				p_cond = p_cond + clique.belief[b]
+				if true_target(b):
+					p_targ_cond = p_targ_cond + clique.belief[b]
+		if abs(p_cond) < epsilon:
+			prob = 1.0
+		else:
+			prob = p_targ_cond/p_cond
+	else:
+		prob = 1.0
+
+	if abs(prob) < epsilon:
+		logprob = ninfi
+	else:
+		logprob = log(prob)
+
+	for index, nodeName in enumerate(clique.ID):
+		if nodeName in x and nodeName not in xstar:
+			xstar[nodeName] = x[nodeName]
+
+	for nb in clique.neighbor:
+		if fatherClique == None or nb != fatherClique.ID:
+			logprob = logprob + recquery(nodeDict, cliqueDict, edgeList, cliqueDict[nb], clique, xstar, x)
+	return logprob
+
+'''update belief'''	
+def updateBelief(nodeDict, cliqueDict, edgeList, x, y, cond):
+	for cliqueName, clique in cliqueDict.iteritems():
+		if cond in cliqueName:
+			indexcond = cliqueName.index(cond)
+			value = y[cond]
+
+			belief = clique.belief
+			for b, prob in belief.iteritems():
+				if b[indexcond] != value:
+					belief[b] = 0.0
+	return
+
+def main(argv):
+
+
+	X,Y,cliqueDict,nodeDict,edgeList=readFile(argv)
+
+
+	for i in range(len(X)):
+		for mkey in edgeList:
+			for tmp in edgeList[mkey]:
+				edgeList[mkey][tmp] = 1.0
+		for cliqueName in cliqueDict:
+			initBelief(nodeDict, cliqueDict, cliqueName)
+
+		for cond in Y[i]:
+			updateBelief(nodeDict, cliqueDict, edgeList, X[i], Y[i], cond)
+		calibration(cliqueDict, nodeDict, edgeList, X, Y)
+		
+		# The query can deal with conflicts in Y, however,
+		# if there is a conflict in X[i] prob would be wrong		
+		logprob = query(nodeDict, cliqueDict, edgeList, X[i])
+		prob = exp(logprob)
+		print 'Probability', prob
+
+if __name__ == '__main__':
+	main(sys.argv)

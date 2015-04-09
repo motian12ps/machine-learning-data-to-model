@@ -1,0 +1,19 @@
+8
+PositionRow_t 1,2,3,4,5,6,7,8,9,10
+PositionCol_t 1,2,3,4,5,6,7,8,9,10
+PositionRow_t+1 1,2,3,4,5,6,7,8,9,10
+PositionCol_t+1 1,2,3,4,5,6,7,8,9,10
+Action_t MoveNorth,MoveSouth,MoveEast,MoveWest
+ObserveWall_t N_Yes,N_No,S_Yes,S_No,E_Yes,E_No,W_Yes,W_No
+ObserveLandmark1_t N_Yes,N_No,S_Yes,S_No,E_Yes,E_No,W_Yes,W_No
+ObserveLandmark2_t N_Yes,N_No,S_Yes,S_No,E_Yes,E_No,W_Yes,W_No
+Action_t -> PositionRow_t+1
+PositionRow_t -> PositionRow_t+1
+Action_t -> PositionCol_t+1
+PositionCol_t -> PositionCol_t+1
+PositionRow_t -> ObserveWall_t
+PositionCol_t -> ObserveWall_t
+PositionRow_t -> ObserveLandmark1_t
+PositionCol_t -> ObserveLandmark1_t
+PositionRow_t -> ObserveLandmark2_t
+PositionCol_t -> ObserveLandmark2_t

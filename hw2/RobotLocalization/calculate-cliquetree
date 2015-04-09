@@ -1,0 +1,368 @@
+#!/usr/bin/env python
+## -*- coding: utf-8 -*-
+#
+#@Tianyi Chen April 1st, 2015
+
+import sys
+import numpy
+
+
+class Node(object):
+	"""docstring for Node"""
+	name=None
+	Id=None
+	parent=None
+	numparent=0
+	children=None
+	numchildren=0
+	isroot=None
+	parentname=None
+	undirectedAdjacent=None
+	def __init__(self, nodecount):
+		super(Node, self).__init__()
+		self.ID = nodecount
+
+
+class CliqueGraph(object):
+	"""docstring for Graph"""
+	#In the edge dictionary, the key of edge equals to two the maximal clique, which has common verteices,
+	#the value to corresponding key is the weight of corresponding edge
+	vertex={}
+	edge={}
+	def __init__(self, arg):
+		super(Graph, self).__init__()
+		self.arg = arg
+			
+
+
+def networkStructure(argv):
+	'''define the original directed graph'''
+	if len(argv)>1:
+		data_network=open(argv[1],"r").readlines()
+	else:
+		#data_network=open("clique-network-grid10x10-t10.txt","r").readlines()
+		data_network=open("simple-clique-network-grid10x10-t10.txt","r").readlines()
+
+	linecount=0
+
+	nodeDict={}
+	nodecount=0
+	numofnode=0
+	for line in data_network:
+		flag="node"
+		linecount=linecount+1
+		if linecount==1:
+			numofnode=int(line.replace("\n",""))
+		if linecount>1:
+			if line.find("->")!=-1:
+				flag="edge"	
+			line=line.replace("\n","").split(" ")
+			if flag=="node":
+				nodeDict[line[0]]=Node(nodecount)
+				nodeDict[line[0]].name=line[0]
+				nodeDict[line[0]].parent=[]
+				nodeDict[line[0]].children=[]
+				nodeDict[line[0]].undirectedAdjacent=[]
+				nodecount=nodecount+1
+			elif flag=="edge":
+				nodeDict[line[0]].children.append(line[2])
+				nodeDict[line[2]].parent.append(line[0])
+				nodeDict[line[0]].undirectedAdjacent.append(line[2])
+				nodeDict[line[2]].undirectedAdjacent.append(line[0])
+
+	return nodeDict,numofnode
+
+'''marry step, and convert the directed graph to undirectedgraph'''
+def marriedStep(nodeDict,numofnode):
+	'''marry the nodes with common chilredn'''
+
+	nodeIndex={}
+	undirectedgraph=[]
+
+	for key1 in nodeDict:
+		nodeIndex[nodeDict[key1].ID]=key1
+
+	#print nodeIndex	
+
+	#vertexIndexList=[0,1,2,3,4....]
+	vertexIndexList=nodeIndex.keys()
+	#print vertexIndexList
+
+	for key1 in nodeDict:
+		for key2 in nodeDict:
+			if key1!=key2 and hasCommonChildren(nodeDict[key1],nodeDict[key2])==True:
+				if nodeDict[key2].name not in nodeDict[key1].undirectedAdjacent:
+					nodeDict[key1].undirectedAdjacent.append(nodeDict[key2].name)
+	
+	for key1 in nodeDict:
+		for key2 in nodeDict:
+			if key1!=key2 and key2 in nodeDict[key1].undirectedAdjacent:
+				edge=[min(nodeDict[key1].ID,nodeDict[key2].ID),max(nodeDict[key1].ID,nodeDict[key2].ID)]
+				if edge not in undirectedgraph:
+					undirectedgraph.append(edge)
+	undirectedgraph.append([1,2])
+	undirectedgraph.append([2,3])
+	
+
+	#print len(undirectedgraph),undirectedgraph	
+	#print undirectedgraph
+	'''create adjacent matrix of graph'''
+	adjacentMatrix=[[0 for i in range(len(vertexIndexList))] for i in range(len(vertexIndexList))]
+	for edge in undirectedgraph:
+		adjacentMatrix[edge[0]][edge[1]]=1
+		adjacentMatrix[edge[1]][edge[0]]=1
+	#print len(adjacentMatrix)
+	#print adjacentMatrix
+	neighborList={}
+	for vertex in vertexIndexList:	
+		tempList=[]
+		for index, neighvertex in enumerate(adjacentMatrix[vertex]):
+			if neighvertex==1:
+				tempList.append(index)
+		neighborList[vertex]=tempList
+	#print undirectedgraph
+	return nodeDict,undirectedgraph,vertexIndexList,adjacentMatrix,neighborList,nodeIndex
+
+def hasCommonChildren(node1,node2):
+	for children in node1.children:
+		if children in node2.children:
+			return True
+	return False 	
+
+'''married step ends'''
+
+'''create chordal graph'''
+
+
+'''Find length>=4 cycles'''
+def findBigLengthCycle(cycles):
+	biglengthcycles=[]
+	for cycle in cycles:
+		if len(cycle)>=4:
+			biglengthcycles.append(cycle)
+
+	return biglengthcycles
+
+
+'''Finding all of cycles starts'''
+def findCycles(undirectedgraph):
+
+    cycles=[]
+    for edge in undirectedgraph:
+        for node in edge:
+            findNewCycles([node],undirectedgraph,cycles)
+    return cycles
+
+def findNewCycles(path,undirectedgraph,cycles):
+
+    start_node = path[0]
+    next_node= None
+    sub = []
+
+    #visit each edge and each node of each edge
+    for edge in undirectedgraph:
+        node1, node2 = edge
+        if start_node in edge:
+                if node1 == start_node:
+                    next_node = node2
+                else:
+                    next_node = node1
+        if not visited(next_node, path):
+                # neighbor node not on path yet
+                sub = [next_node]
+                sub.extend(path)
+                # explore extended path
+                findNewCycles(sub,undirectedgraph,cycles);
+        elif len(path) > 2  and next_node == path[-1]:
+                #cycle found
+                p = rotate_to_smallest(path);
+                inv = invert(p)
+                if isNew(p,cycles) and isNew(inv,cycles):
+                   cycles.append(p)
+
+def invert(path):
+    return rotate_to_smallest(path[::-1])
+
+#  rotate cycle path such that it begins with the smallest node
+def rotate_to_smallest(path):
+    n = path.index(min(path))
+    return path[n:]+path[:n]
+
+def isNew(path,cycles):
+    return not path in cycles
+
+def visited(node, path):
+    return node in path
+
+'''Finding Cycles Ends'''
+
+'''triangularition starts'''
+
+def whetherBelongto(List1,List2):
+
+	for li in List1:
+		if li not in List2:
+			return False
+	
+	list1=str(List1)
+	list2=str(List2).replace("[","").replace("]","")
+
+	if list1.find(list2)!=-1:
+		return True
+
+	return False
+
+'''triangularition ENDS'''
+
+
+
+
+'''Find all maximal clique starts'''
+'''We implement Bron Kerbosch Algorithm to list all maximal clique in the graph'''
+''''''
+def findMaximalClique(vertexIndexList,adjacentMatrix,neighborList):
+	R=[]
+	P=vertexIndexList
+	X=[]
+	maximalCliqueList=[]
+
+	maximalCliqueList=BronKerbosch(R,P,X,adjacentMatrix,maximalCliqueList,neighborList)
+	#print "maximalCliqueList",maximalCliqueList
+	return maximalCliqueList
+
+
+def BronKerbosch(R,P,X,adjacentMatrix,maximalCliqueList,neighborList):
+	if len(P)==0 and len(X)==0:
+		maximalCliqueList.append(R)
+	for vertex1 in P[:]:
+		R_new = R[:]
+		R_new.append(vertex1)
+		P_new=[]
+		for vertex2 in P:
+			if vertex2 in neighborList[vertex1]:
+				P_new.append(vertex2)
+		X_new=[]		
+		for vertex3 in X:
+			if vertex3 in neighborList[vertex1]:
+				X_new.append(vertex3)
+		BronKerbosch(R_new,P_new,X_new,adjacentMatrix,maximalCliqueList,neighborList)
+		P.remove(vertex1)
+		X.append(vertex1)
+	return maximalCliqueList
+
+'''Find all maximal clique ends'''
+
+'''	Construct weighted graph by using maximal clique'''
+def ConstructWeightedGraph(maximalCliqueList):
+	graph={}
+	cliqueEdge={}
+	cliqueVertex={}
+	cliqueWeightedEdgeList=[]
+
+	for clique in maximalCliqueList:
+		cliqueVertex[maximalCliqueList.index(clique)]=clique
+
+
+	edgecount=0
+	for key1,value1 in cliqueVertex.iteritems():
+		for key2,value2 in cliqueVertex.iteritems():
+			numCommonEntries=0
+			if key1 != key2:
+				numCommonEntries,commonEntries=hasCommonEntries(cliqueVertex[key1],cliqueVertex[key2])
+			if numCommonEntries!=0:
+				edgeKey1=str(key1)+","+str(key2)
+				edgeKey2=str(key2)+","+str(key1)
+				if edgeKey1 not in cliqueEdge.keys() and edgeKey2 not in cliqueEdge.keys():
+					cliqueEdge[edgeKey1]=numCommonEntries
+					cliqueWeightedEdgeList.append((edgecount,[key1,key2],numCommonEntries))
+					edgecount=edgecount+1
+
+	return cliqueVertex,cliqueWeightedEdgeList
+
+
+def hasCommonEntries(List1,List2):
+	commonEntries=[]
+	for li1 in List1:
+		if li1 in List2:
+			commonEntries.append(li1)
+	return len(commonEntries),commonEntries
+''' Construct weighted graph by using maximal clique Ends'''
+
+
+'''Find the maximal spanning tree starts'''
+'''Construct a stuitable graph data structure'''
+
+def SortEdgeByWeight(cliqueWeightedEdgeList):
+
+	sortedWeightedEdgeList=sorted(cliqueWeightedEdgeList,key=lambda weightededge: weightededge[2],reverse=True)	
+
+	return sortedWeightedEdgeList
+
+def Kruskal(sortedWeightedEdgeList,cliqueVertex,maximalCliqueList,nodeIndex):
+	
+	parent={}
+	rank={}
+	#Initialize parameters
+	for vertex in cliqueVertex:
+		parent[vertex]=vertex
+		rank[vertex]=0
+	maximumSpanningTree=[]
+	for edge in sortedWeightedEdgeList:
+		#print edge
+		weight,vertex1,vertex2=edge[-1],edge[1][0],edge[1][1]
+		#print weight,vertex1,vertex2
+		if upSearch(vertex1,parent) != upSearch(vertex2,parent):
+			parent,rank=union(vertex1,vertex2,parent,rank)
+			maximumSpanningTree.append(edge)
+
+	maximalCliqueNodeList=[]		
+	for clique in maximalCliqueList:
+		LIST=[]
+		for li in clique:
+			LIST.append(nodeIndex[li])
+		maximalCliqueNodeList.append(LIST)
+	#print maximalCliqueNodeList	
+	maximumSpanningTreeList=[]
+	for entry in maximumSpanningTree:
+		LIST=[]
+		for index in entry[1]:
+			LIST.append(tuple(maximalCliqueNodeList[index]))
+		LIST.append(entry[-1])
+		maximumSpanningTreeList.append(LIST)
+	print "clique tree structure"
+	for cliquelist in maximumSpanningTreeList:
+		print "clique",cliquelist[0],"clique",cliquelist[1],"edge weight",cliquelist[2]
+	return maximumSpanningTree
+
+def union(vertex1, vertex2,parent,rank):
+    root1 = upSearch(vertex1,parent)
+    root2 = upSearch(vertex2,parent)
+    if root1 != root2:
+        if rank[root1] > rank[root2]:
+            parent[root2] = root1
+        else:
+            parent[root1] = root2
+            if rank[root1] == rank[root2]: rank[root2] += 1
+    return parent,rank
+
+def upSearch(vertex,parent):
+    if parent[vertex] != vertex:
+        parent[vertex] = upSearch(parent[vertex],parent)
+    return parent[vertex]
+
+'''Find the maximal spanning tree Ends'''
+
+def main(argv):
+
+	nodeDict,numofnode=networkStructure(argv)
+	nodeDict,undirectedgraph,vertexIndexList,adjacentMatrix,neighborList,nodeIndex=marriedStep(nodeDict,numofnode)
+	cycles=findCycles(undirectedgraph)
+	biglengthcycles=findBigLengthCycle(cycles)
+	maximalCliqueList=findMaximalClique(vertexIndexList,adjacentMatrix,neighborList)
+	cliqueVertex,cliqueWeightedEdgeList=ConstructWeightedGraph(maximalCliqueList)
+	sortedWeightedEdgeList=SortEdgeByWeight(cliqueWeightedEdgeList)
+	Kruskal(sortedWeightedEdgeList,cliqueVertex,maximalCliqueList,nodeIndex)
+	
+
+if __name__ == "__main__":
+	main(sys.argv);

@@ -1,0 +1,14 @@
+7
+FluRate Elevated,NotElevated
+PreviousFluRate Elevated,NotElevated
+IsFluSeason Yes,No
+MaryGetsFlu Yes,No
+JohnGetsFlu Yes,No
+MaryVaccinated Yes,No
+JohnVaccinated Yes,No
+IsFluSeason -> FluRate
+PreviousFluRate -> FluRate
+FluRate -> MaryGetsFlu
+FluRate -> JohnGetsFlu
+MaryVaccinated -> MaryGetsFlu
+JohnVaccinated -> JohnGetsFlu
