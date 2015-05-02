@@ -1,0 +1,760 @@
+#!/usr/bin/env python
+## -*- coding: utf-8 -*-
+
+import sys
+import numpy
+
+
+class Document(object):
+	"""docstring for Document"""
+	coraset=set()
+	vocabulary={}
+	word_counter=0
+
+	def __init__(self, line):
+		super(Document, self).__init__()		
+		line_split=line.replace("\n","").split(" ") 
+
+		'''initialize the corpus of each documents'''
+		self.corpus=int(line_split[0])
+		self.topic=None
+		if self.corpus not in Document.coraset:
+			Document.coraset.add(self.corpus)
+
+		'''put all of words in each document into words list and vocabulary'''
+		self.words=[]
+		for index in range(1,len(line_split)):
+			self.words.append(line_split[index])
+			if line_split[index] not in Document.vocabulary.keys():
+				Document.vocabulary[line_split[index]]=Document.word_counter
+				Document.word_counter=Document.word_counter+1
+		'''n_d_star is the number of words in the current document'''
+		self.n_d_star=self.size()
+
+	def size(self):
+		return len(self.words)
+
+
+
+class Parameter(object):
+	V=None
+	N_d=None
+	z=None
+	x=None
+	theta=None
+	final_theta=None
+	K=None
+	Lambda=None
+	Alpha=None
+	Beta=None
+	iterations=None
+	burnIn=None
+	phi_k_w=None
+	final_phi_k_w=None
+	phi_c_k_w=None
+	final_phi_c_k_w=None
+	n_d_k=None
+	n_k_w=None
+	n_k=None
+	n_c_k_w=None
+	n_c_k=None
+	loglikehood=None
+
+	'''test'''
+	test_N_d=None
+	test_z=None
+	test_x=None
+	test_theta=None
+	test_phi_c_k_w=None
+	test_n_d_k=None
+	test_n_c_k_w=None
+	test_n_c_k=None
+	test_loglikelihood=None
+	"""docstring for ClassName"""
+	def __init__(self):
+		super(ClassName, self).__init__()
+						
+
+
+
+def loadData(argv,trainingDocuments,testDocuments):
+
+
+	if len(argv)==10:
+		trainingFile=open(argv[1],"r").readlines()
+		testFile=open(argv[2],"r").readlines()
+		outputFile=argv[3]
+		Parameter.K=int(argv[4])
+		Parameter.Lambda=float(argv[5])
+		Parameter.Alpha=float(argv[6])
+		Parameter.Beta=float(argv[7])
+		Parameter.iterations=int(argv[8])
+		Parameter.burnIn=int(argv[9])
+	else:
+		trainingFile=open("input-train.txt","r").readlines()
+		#trainingFile=open("test-training.txt","r").readlines()
+		#testFile=open("input-test-part.txt","r").readlines()
+		testFile=open("input-test.txt","r").readlines()
+		outputFile="output.txt"
+		Parameter.K=25
+		Parameter.Lambda=0.25
+		Parameter.Alpha=0.1
+		Parameter.Beta=0.01
+		Parameter.iterations=110
+		Parameter.burnIn=100
+
+	for (line_count, line) in enumerate(trainingFile):
+		trainingDocuments.append(Document(line))
+
+	for (line_count, line) in enumerate(testFile):
+		testDocuments.append(Document(line))
+ 
+
+	'''initialize V value, V is the number of total distinct words'''	
+	Parameter.V=len(Document.vocabulary)
+
+	'''initialize N_d, N_d is the number of training documents'''
+	Parameter.N_d=len(trainingDocuments)
+
+	'''initialize test_N_d, test_N_d is the number of test documents'''
+	Parameter.test_N_d=len(testDocuments)
+
+	Parameter.z=[0 for index in range(Parameter.N_d)]
+	Parameter.x=[0 for index in range(Parameter.N_d)]
+
+	Parameter.theta=[[0 for col in range(Parameter.K)] for row in range(Parameter.N_d)]
+	Parameter.final_theta=[[0 for col in range(Parameter.K)] for row in range(Parameter.N_d)]
+
+	Parameter.phi_k_w=[[0 for col in range(Parameter.V)] for row in range(Parameter.K)]
+	Parameter.final_phi_k_w=[[0 for col in range(Parameter.V)] for row in range(Parameter.K)]
+
+	Parameter.phi_c_k_w=[[[0 for col in range(Parameter.V)] for row in range(Parameter.K)] for binary in range(2)]
+	Parameter.final_phi_c_k_w=[[[0 for col in range(Parameter.V)] for row in range(Parameter.K)] for binary in range(2)]
+
+	Parameter.n_d_k=[[0 for col in range(Parameter.K)] for row in range(Parameter.N_d)]
+	Parameter.n_k_w=[[0 for col in range(Parameter.V)] for row in range(Parameter.K)]
+	Parameter.n_k=[0 for topic in range(Parameter.K)]
+
+
+	Parameter.n_c_k_w=[[[0 for z in range(Parameter.V)] for y in range(Parameter.K)] for x in range(len(Document.coraset))]
+	Parameter.n_c_k=[[0 for col in range(Parameter.K)] for row in range(len(Document.coraset))]
+
+	Parameter.loglikehood=[0 for i in range(Parameter.iterations)]
+
+	'''initialize test_N_d, test_N_d is the number of test documents'''
+	Parameter.test_z=[0 for index in range(Parameter.test_N_d)]
+	Parameter.test_x=[0 for index in range(Parameter.test_N_d)]
+
+	Parameter.test_theta=[[0 for col in range(Parameter.K)] for row in range(Parameter.test_N_d)]
+	Parameter.test_phi_c_k_w=[[[0 for col in range(Parameter.V)] for row in range(Parameter.K)] for binary in range(2)]
+	Parameter.test_n_d_k=[[0 for col in range(Parameter.K)] for row in range(Parameter.test_N_d)]
+	Parameter.test_n_c_k_w=[[[0 for z in range(Parameter.V)] for y in range(Parameter.K)] for x in range(len(Document.coraset))]
+	Parameter.test_n_c_k=[[0 for col in range(Parameter.K)] for row in range(len(Document.coraset))]
+	Parameter.test_loglikelihood=[0 for i in range(Parameter.iterations)]
+
+						
+'''initialize all parameters'''	
+def trainingInitialize(trainingDocuments):
+
+	'''initialize binary parameter x for each word in every document'''
+	for d in range(Parameter.N_d):
+		document=trainingDocuments[d]
+		Parameter.x[d]=[0 for index in range(document.n_d_star)]
+
+		for index_word in range(document.size()):
+			Parameter.x[d][index_word]=numpy.random.randint(2)
+
+	"""
+	token(d,index_word) word i in document d
+	initialize: z, and count n_d_k,n_k,n_k_w,n_c_k,n_c_k_w
+	z is the parameter that store the topic of each word in every document
+	
+	When corpus-independent(x=0): 
+	n_k_w is the parameter that means the number of each token assigned to topic k
+	n_k is sum of n_k_w over w, that is the number of each topic's appearance
+
+	When corpus-dependent(x=1):
+	there exists two possible corpus, c_d={A,S},A=ACL, S=NIPS
+	if document.corpus==0, then document.corpus.name=ACL
+	elif document.corpus==1,then document.corpus.name=NIPS
+
+	n_c_k_w is the parameter that means the number of each token under corpus-dependence 
+	assigned to topic k
+
+	n_c_k is the sum of n_c_k_w over w, that is the number of each topic's appearance under 
+	corpus-dependence
+	"""
+	for d in range(Parameter.N_d):
+		document=trainingDocuments[d]
+		Parameter.z[d]=[0 for index in range(document.n_d_star)]
+
+		for index_word in range(document.size()):
+
+
+			'''Initially randomly choose a topic for each word'''
+			k=numpy.random.randint(Parameter.K)
+
+			'''w is the index of word (String type) in vocabulary'''
+			w=Document.vocabulary[document.words[index_word]]
+
+
+			Parameter.n_d_k[d][k]+=1
+
+
+			Parameter.n_k_w[k][w]+=1
+			Parameter.n_k[k]+=1
+			if Parameter.x[d][index_word]==1:
+				Parameter.n_c_k_w[document.corpus][k][w]+=1
+				Parameter.n_c_k[document.corpus][k]+=1
+
+			Parameter.z[d][index_word]=k
+
+def trainingSample(trainingDocuments):
+
+	'''For each iteration in {1,iterations}'''
+	for iteration in range(Parameter.iterations):
+		for d in range(Parameter.N_d):
+
+			document=trainingDocuments[d]
+
+			'''iterate on each word, and count the condition '''
+			for index_word in range(document.size()):
+				
+				'''get the index k,w'''
+				'''k is the topic of current word, w is its index in vocabulary'''
+				k=Parameter.z[d][index_word]
+				w=Document.vocabulary[document.words[index_word]]
+
+
+				"""
+				Step 2.(a).i: Update the counts to exclude the assignments of current token
+				"""
+
+				Parameter.n_d_k[d][k]-=1
+				Parameter.n_k[k]-=1
+				Parameter.n_k_w[k][w]-=1
+				
+				if Parameter.x[d][index_word]==1:
+					Parameter.n_c_k_w[document.corpus][k][w]-=1
+					Parameter.n_c_k[document.corpus][k]-=1
+
+				# if Parameter.x[d][index_word]==0:
+				# 	Parameter.n_k[k]-=1
+				# 	Parameter.n_k_w[k][w]-=1
+				# elif Parameter.x[d][index_word]==1:
+				# 	Parameter.n_c_k_w[document.corpus][k][w]-=1
+				# 	Parameter.n_c_k[document.corpus][k]-=1
+
+				"""
+				Step 2.(a).ii: Randomly sample a new value for each z, the probability of sampling
+				a value z=k should be propotional to Eq.3
+				"""
+
+				Parameter.z[d][index_word]=sampleZ(d,index_word,w,document)
+				
+				"""
+				Step 2.(a).iii: Randomly sample a new value for each x, the probability of sampling
+				a value x=0,or 1 should be propotional to Eq.4
+				We should use the new_z from last sampling z
+				"""				
+				new_k=Parameter.z[d][index_word]
+
+				Parameter.x[d][index_word]=sampleX(d,w,document,new_k)
+
+
+				"""
+				Step 2.(a).iv:Update the counts to include the newly sampled assignments of the current token
+				"""
+				Parameter.n_d_k[d][new_k]+=1
+
+				Parameter.n_k[new_k]+=1
+				Parameter.n_k_w[new_k][w]+=1
+
+				if Parameter.x[d][index_word]==1:
+					Parameter.n_c_k_w[document.corpus][new_k][w]+=1
+					Parameter.n_c_k[document.corpus][new_k]+=1
+
+		"""
+		Step 2.b:Estimate the parameters according to Eq.5-7
+		"""			
+		estimateTheta(trainingDocuments,iteration)
+		estimatePhi(trainingDocuments,iteration)
+		estimatePhic(trainingDocuments,iteration)
+
+		Parameter.loglikehood[iteration]=computeTrainingLogLikelihood(trainingDocuments)
+		print "iteration=",iteration,"    training document: loglikehood=",Parameter.loglikehood[iteration]
+		# w=Document.vocabulary["data"]
+		# sum1=0
+		# for k in range(Parameter.K):
+		# 	sum1+=Parameter.phi_k_w[k][w]
+		# 	print Parameter.phi_k_w[k][w]	
+		# print "sum",sum1
+
+		
+def outputParameter(trainingDocuments,testDocuments):
+
+	outputTheta=open("lambda/collasped-output-theta-"+str(Parameter.K)+"-"+str(Parameter.Lambda)+"-"+str(Parameter.Alpha)+".txt", "w")
+	outputPhi=open("lambda/collasped-output-phi-"+str(Parameter.K)+"-"+str(Parameter.Lambda)+"-"+str(Parameter.Alpha)+".txt", "w")
+	outputPhi0=open("lambda/collasped-output-phi0-"+str(Parameter.K)+"-"+str(Parameter.Lambda)+"-"+str(Parameter.Alpha)+".txt","w")
+	outputPhi1=open("lambda/collasped-output-phi1-"+str(Parameter.K)+"-"+str(Parameter.Lambda)+"-"+str(Parameter.Alpha)+".txt","w")
+	outputTrainingll=open("lambda/collasped-output-train-ll-"+str(Parameter.K)+"-"+str(Parameter.Lambda)+"-"+str(Parameter.Alpha)+".txt","w")
+	outputTestingll=open("lambda/collasped-output-test-ll-"+str(Parameter.K)+"-"+str(Parameter.Lambda)+"-"+str(Parameter.Alpha)+".txt","w")
+	
+
+	'''Output theta'''
+	for d in range(Parameter.N_d):
+		outputTheta.write(str(d)+" ")
+		for k in range(Parameter.K):
+
+			outputTheta.write('%.13e' % Parameter.final_theta[d][k])
+			outputTheta.write(" ")
+
+		outputTheta.write("\n")
+	outputTheta.close()
+
+
+	'''Output phi'''
+	for word,w in Document.vocabulary.iteritems():
+		outputPhi.write(word+" ")
+		for k in range(Parameter.K):
+			outputPhi.write('%.13e' % Parameter.final_phi_k_w[k][w])
+			outputPhi.write(" ")
+		outputPhi.write("\n")
+	outputPhi.close()
+
+
+	'''Output phi0'''
+	for word,w in Document.vocabulary.iteritems():
+		outputPhi0.write(word+" ")
+		for k in range(Parameter.K):
+			outputPhi0.write('%.13e' % Parameter.final_phi_c_k_w[0][k][w])
+			outputPhi0.write(" ")
+		outputPhi0.write("\n")
+	outputPhi0.close()
+
+	'''Output phi1'''
+	for word,w in Document.vocabulary.iteritems():
+		outputPhi1.write(word+" ")
+		for k in range(Parameter.K):
+			outputPhi1.write('%.13e' % Parameter.final_phi_c_k_w[1][k][w])
+			outputPhi1.write(" ")
+		outputPhi1.write("\n")
+	outputPhi1.close()
+
+
+
+	'''Output training loglikelihood'''
+	for iteration in range(Parameter.iterations):
+		#outputTrainingll.write(str(Parameter.loglikehood[iteration])+"\n")
+		outputTrainingll.write('%.13e' %Parameter.loglikehood[iteration])
+		outputTrainingll.write("\n")
+	outputTrainingll.close()
+
+	'''Output test loglikelihood'''
+	for iteration in range(Parameter.iterations):
+		#outputTestingll.write(str(Parameter.test_loglikelihood[iteration])+"\n")
+		outputTestingll.write('%.13e' %Parameter.test_loglikelihood[iteration])
+		outputTestingll.write("\n")
+	outputTestingll.close()
+
+
+	
+
+
+
+def sampleZ(d,index_word,w,document):
+
+	potential=[0 for index in range(Parameter.K)]
+
+	for k in range(Parameter.K):
+		if Parameter.x[d][index_word]==0:
+			expression1=float(Parameter.n_d_k[d][k])+float(Parameter.Alpha)
+			expression2=float(document.n_d_star)+float(Parameter.K)*float(Parameter.Alpha)
+			expression3=float(Parameter.n_k_w[k][w])+float(Parameter.Beta)
+			expression4=float(Parameter.n_k[k])+float(Parameter.V)*float(Parameter.Beta)
+			potential[k]=expression1*expression3/(expression2*expression4)
+		elif Parameter.x[d][index_word]==1:
+			potential[k]=(float(Parameter.n_d_k[d][k])+float(Parameter.Alpha))/(float(document.n_d_star)+float(Parameter.K)*float(Parameter.Alpha))*\
+			(float(Parameter.n_c_k_w[document.corpus][k][w])+float(Parameter.Beta))/(float(Parameter.n_c_k[document.corpus][k])+float(Parameter.V)*float(Parameter.Beta))
+
+	
+	
+	'''Normalize potentials'''
+	sum_potential=0
+	for i in range(len(potential)):
+		sum_potential=sum_potential+potential[i]
+
+	'''Generate multinormial distribution'''	
+	multiNomial=[0 for index in range(Parameter.K)]
+
+
+	for i in range(len(potential)):
+		multiNomial[i]=potential[i]/sum_potential
+
+	
+	'''Resample z'''
+	
+	prob=numpy.random.random()
+	sum_prob=0
+	index=0
+	while(True):
+		sum_prob+=multiNomial[index]
+		if sum_prob>prob:
+			return index
+		index+=1
+
+
+def sampleX(d,w,document,k):
+	
+	potential=[0 for index in range(2)]
+
+	potential[0]=(1-float(Parameter.Lambda))*(float(Parameter.n_k_w[k][w])+float(Parameter.Beta))/\
+	(float(Parameter.n_k[k])+float(Parameter.V)*float(Parameter.Beta))
+	potential[1]=float(Parameter.Lambda)*(float(Parameter.n_c_k_w[document.corpus][k][w])+float(Parameter.Beta))/\
+	(float(Parameter.n_c_k[document.corpus][k])+float(Parameter.V)*float(Parameter.Beta))
+	
+	'''Normalize potentials'''
+	sum_potential=0
+	for i in range(len(potential)):
+		sum_potential=sum_potential+potential[i]
+
+	'''Generate multinormial distribution'''	
+	multiNomial=[0 for index in range(2)]
+
+	for i in range(len(potential)):
+		multiNomial[i]=potential[i]/sum_potential
+
+
+	'''Resample x'''
+	
+	prob=numpy.random.random()
+	sum_prob=0
+	index=0
+	while(True):
+		sum_prob+=multiNomial[index]
+		if sum_prob>prob:
+			return index
+		index+=1
+	
+def estimateTheta(trainingDocuments,iteration):
+
+	"""
+	Step 2.d: If the burn-in period:
+	i: incorporate the estimated parameters into your estimate of expected value
+	estimate theta
+	"""	
+
+	for d in range(Parameter.N_d):
+		document=trainingDocuments[d]
+		for k in range(Parameter.K):
+			Parameter.theta[d][k]=(float(Parameter.n_d_k[d][k]+float(Parameter.Alpha)))/\
+			(float(document.n_d_star+float(Parameter.K)*float(Parameter.Alpha)))
+			if iteration>=Parameter.burnIn:
+				Parameter.final_theta[d][k]+=(Parameter.theta[d][k])/(float(Parameter.iterations)-float(Parameter.burnIn))
+
+
+def estimatePhi(trainingDocuments,iteration):
+
+	"""
+	Step 2.d: If the burn-in period:
+	i: incorporate the estimated parameters into your estimate of expected value
+	estimate phi_k_w
+	"""	
+
+	for k in range(Parameter.K):
+		for w in range(Parameter.V):
+			Parameter.phi_k_w[k][w]=(float(Parameter.n_k_w[k][w])+float(Parameter.Beta))/\
+			(float(Parameter.n_k[k])+float(Parameter.V)*float(Parameter.Beta))
+			if iteration>=Parameter.burnIn:
+				Parameter.final_phi_k_w[k][w]+=(Parameter.phi_k_w[k][w])/(float(Parameter.iterations)-float(Parameter.burnIn))
+			#print Parameter.phi_k_w[k][w]
+
+def estimatePhic(trainingDocuments,iteration):
+
+	"""
+	Step 2.d: If the burn-in period:
+	i: incorporate the estimated parameters into your estimate of expected value
+	estimate phi_c_k_w
+	"""	
+
+	for k in range(Parameter.K):
+		for w in range(len(Document.vocabulary)):
+			for c in range(2):
+				Parameter.phi_c_k_w[c][k][w]=(float(Parameter.n_c_k_w[c][k][w])+float(Parameter.Beta))/\
+				(float(Parameter.n_c_k[c][k])+float(Parameter.V)*float(Parameter.Beta))
+				if iteration>=Parameter.burnIn:
+					Parameter.final_phi_c_k_w[c][k][w]+=(Parameter.phi_c_k_w[c][k][w])/(float(Parameter.iterations)-float(Parameter.burnIn))
+
+def computeTrainingLogLikelihood(trainingDocuments):
+
+	loglikehood=0
+	for d in range(Parameter.N_d):
+		document=trainingDocuments[d]
+		for index_word in range(document.n_d_star):
+			logSum=0
+			w=Document.vocabulary[document.words[index_word]]
+			for k in range(Parameter.K):	
+				logSum+=Parameter.theta[d][k]*((1-float(Parameter.Lambda))*Parameter.phi_k_w[k][w]+\
+					Parameter.Lambda*Parameter.phi_c_k_w[document.corpus][k][w])
+			#print Parameter.n_k_w[k][w],Parameter.phi_k_w[k][w],Parameter.phi_c_k_w[document.corpus][k][w],logSum,loglikehood
+
+			loglikehood+=numpy.log(logSum)
+	return loglikehood 
+
+def testInitialize(testDocuments):
+	'''initialize binary parameter x for each word in every document'''
+	'''n_d_star is the number of words in each document'''
+	for test_d in range(Parameter.test_N_d):
+		document=testDocuments[test_d]
+		Parameter.test_x[test_d]=[0 for index in range(document.n_d_star)]
+
+		for test_index_word in range(document.size()):
+			Parameter.test_x[test_d][test_index_word]=numpy.random.randint(2)
+
+
+	"""
+	token(d,index_word) word i in document d
+	initialize: z, and count n_d_k,n_k,n_k_w,n_c_k,n_c_k_w
+	z is the parameter that store the topic of each word in every document
+	
+	When corpus-independent(x=0): 
+	n_k_w is the parameter that means the number of each token assigned to topic k
+	n_k is sum of n_k_w over w, that is the number of each topic's appearance
+
+	When corpus-dependent(x=1):
+	there exists two possible corpus, c_d={A,S},A=ACL, S=NIPS
+	if document.corpus==0, then document.corpus.name=ACL
+	elif document.corpus==1,then document.corpus.name=NIPS
+
+	n_c_k_w is the parameter that means the number of each token under corpus-dependence 
+	assigned to topic k
+
+	n_c_k is the sum of n_c_k_w over w, that is the number of each topic's appearance under 
+	corpus-dependence
+	"""
+
+	for test_d in range(Parameter.test_N_d):
+		document=testDocuments[test_d]
+		Parameter.test_z[test_d]=[0 for index in range(document.n_d_star)]
+		#print d
+		for test_index_word in range(document.n_d_star):
+			'''Initially randomly choose a topic for each word'''
+			test_k=numpy.random.randint(Parameter.K)
+
+			'''w is the index of word (String type) in vocabulary'''
+			test_w=Document.vocabulary[document.words[test_index_word]]
+
+
+			Parameter.test_n_d_k[test_d][test_k]+=1
+
+			'''Since for test document, we only have the parameter n_k_w from training document'''
+			if Parameter.test_x[test_d][test_index_word]==1:
+				Parameter.test_n_c_k_w[document.corpus][test_k][test_w]+=1
+				Parameter.test_n_c_k[document.corpus][test_k]+=1
+
+			Parameter.test_z[test_d][test_index_word]=test_k	
+
+def testSample(testDocuments):
+
+	'''For each iteration in {1,iterations}'''
+	for iteration in range(Parameter.iterations):
+		for test_d in range(Parameter.test_N_d):
+
+			document=testDocuments[test_d]
+
+			'''iterate on each word, and count the condition '''
+			for test_index_word in range(document.n_d_star):
+				
+				'''get the index test_k,test_w'''
+				'''test_k is the topic of current word, test_w is its index in vocabulary'''
+				test_k=Parameter.test_z[test_d][test_index_word]
+				test_w=Document.vocabulary[document.words[test_index_word]]
+
+
+				"""
+				Step 2.(a).i: Update the counts to exclude the assignments of current token
+				"""
+
+				Parameter.test_n_d_k[test_d][test_k]-=1
+
+				if Parameter.test_x[test_d][test_index_word]==1:
+					Parameter.test_n_c_k_w[document.corpus][test_k][test_w]-=1
+					Parameter.test_n_c_k[document.corpus][test_k]-=1
+
+				"""
+				Step 2.(a).ii: Randomly sample a new value for each z, the probability of sampling
+				a value z=k should be propotional to Eq.3
+				"""
+
+				Parameter.test_z[test_d][test_index_word]=sampleTestZ(test_d,test_index_word,test_w,document)
+				
+				"""
+				Step 2.(a).iii: Randomly sample a new value for each x, the probability of sampling
+				a value x=0,or 1 should be propotional to Eq.4
+				We should use the new topic from last sampling z
+				"""				
+				new_test_k=Parameter.test_z[test_d][test_index_word]
+
+				Parameter.test_x[test_d][test_index_word]=sampleTestX(test_d,test_w,document,new_test_k)
+
+
+				"""
+				Step 2.(a).iv:Update the counts to include the newly sampled assignments of the current token
+				"""
+				
+				Parameter.test_n_d_k[test_d][new_test_k]+=1
+
+				if Parameter.test_x[test_d][test_index_word]==1:
+					Parameter.test_n_c_k_w[document.corpus][new_test_k][test_w]+=1
+					Parameter.test_n_c_k[document.corpus][new_test_k]+=1
+		"""
+		Step 2.b:Estimate the parameters according to Eq.5-7
+		"""			
+		estimateTestTheta(testDocuments,iteration)
+		# for d in range(Parameter.test_N_d):
+		# 	print Parameter.test_theta[d] 
+		estimateTestPhic(testDocuments,iteration)
+		Parameter.test_loglikelihood[iteration]=computeTestLogLikelihood(testDocuments)
+
+		print "iteration=",iteration,"    test document:loglikehood=",Parameter.test_loglikelihood[iteration]
+
+
+
+def sampleTestZ(test_d,test_index_word,test_w,document):
+
+	potential=[0 for index in range(Parameter.K)]
+
+	for test_k in range(Parameter.K):
+		if Parameter.test_x[test_d][test_index_word]==0:
+			potential[test_k]=(float(Parameter.test_n_d_k[test_d][test_k])+float(Parameter.Alpha))/(float(document.n_d_star)+float(Parameter.K)*float(Parameter.Alpha))*\
+			Parameter.phi_k_w[test_k][test_w]
+		elif Parameter.test_x[test_d][test_index_word]==1:
+			potential[test_k]=(float(Parameter.test_n_d_k[test_d][test_k])+float(Parameter.Alpha))/(float(document.n_d_star)+float(Parameter.K)*float(Parameter.Alpha))*\
+			(float(Parameter.test_n_c_k_w[document.corpus][test_k][test_w])+float(Parameter.Beta))/(float(Parameter.test_n_c_k[document.corpus][test_k])+float(Parameter.V)*float(Parameter.Beta))
+
+	'''Normalize potentials'''
+	sum_potential=0
+	for i in range(len(potential)):
+		sum_potential=sum_potential+potential[i]
+
+
+	#print sum_potential
+	'''Generate multinormial distribution'''	
+	multiNomial=[0 for index in range(Parameter.K)]
+
+	for i in range(len(potential)):
+		multiNomial[i]=potential[i]/sum_potential
+
+	
+	'''Resample z'''
+	
+	prob=numpy.random.random()
+	sum_prob=0
+	index=0
+	while(True):
+		sum_prob+=multiNomial[index]
+		if sum_prob>prob:
+			return index
+		index+=1
+
+def sampleTestX(test_d,test_w,document,test_k):
+	
+
+	"""
+	For test file, we remain n_k_w from the traning file
+	"""
+	potential=[0 for index in range(2)]
+
+	potential[0]=(1-float(Parameter.Lambda))*Parameter.final_phi_k_w[test_k][test_w]
+	
+	potential[1]=float(Parameter.Lambda)*(float(Parameter.test_n_c_k_w[document.corpus][test_k][test_w])+float(Parameter.Beta))/\
+	(float(Parameter.test_n_c_k[document.corpus][test_k])+float(Parameter.V)*float(Parameter.Beta))
+	
+	'''Normalize potentials'''
+	sum_potential=0
+	for i in range(len(potential)):
+		sum_potential=sum_potential+potential[i]
+
+	'''Generate multinormial distribution'''	
+	multiNomial=[0 for index in range(2)]
+
+	for i in range(len(potential)):
+		multiNomial[i]=potential[i]/sum_potential
+
+	'''Resample x'''
+	
+	prob=numpy.random.random()
+	sum_prob=0
+	index=0
+	while(True):
+		sum_prob+=multiNomial[index]
+		if sum_prob>prob:
+			return index
+		index+=1
+
+def estimateTestTheta(testDocuments,iteration):
+
+	
+	"""
+	Step 2.d: If the burn-in period:
+	i: incorporate the estimated parameters into your estimate of expected value
+	estimate theta
+	"""	
+
+	for test_d in range(Parameter.test_N_d):
+		document=testDocuments[test_d]
+		for test_k in range(Parameter.K):
+			Parameter.test_theta[test_d][test_k]=(float(Parameter.test_n_d_k[test_d][test_k]+float(Parameter.Alpha)))/\
+			(float(document.n_d_star+float(Parameter.K)*float(Parameter.Alpha)))
+	
+def estimateTestPhic(testDocuments,iteration):
+
+	"""
+	Step 2.d: If the burn-in period:
+	i: incorporate the estimated parameters into your estimate of expected value
+	estimate phi_c_k_w
+	"""	
+	for test_k in range(Parameter.K):
+		for test_w in range(len(Document.vocabulary)):
+			for c in range(2):
+				Parameter.test_phi_c_k_w[c][test_k][test_w]=(float(Parameter.test_n_c_k_w[c][test_k][test_w])+float(Parameter.Beta))/\
+				(float(Parameter.n_c_k[c][test_k])+float(Parameter.V)*float(Parameter.Beta))
+
+
+def computeTestLogLikelihood(testDocuments):
+	loglikehood=0
+	for d in range(Parameter.test_N_d):
+		document=testDocuments[d]
+		for index_word in range(document.n_d_star):
+			logSum=0
+			w=Document.vocabulary[document.words[index_word]]
+			for k in range(Parameter.K):			
+				logSum+=Parameter.test_theta[d][k]*((1-Parameter.Lambda)*Parameter.final_phi_k_w[k][w]+\
+					Parameter.Lambda*Parameter.test_phi_c_k_w[document.corpus][k][w])
+			loglikehood+=numpy.log(logSum)
+	return loglikehood 
+
+def main(argv):
+
+	
+	trainingDocuments=[]
+
+	testDocuments=[]
+	
+	loadData(argv,trainingDocuments,testDocuments)
+	'''Training parameters'''
+	trainingInitialize(trainingDocuments)
+
+	trainingSample(trainingDocuments)
+	w=Document.vocabulary["data"]
+
+	'''Test'''
+	testInitialize(testDocuments)
+
+	testSample(testDocuments)
+
+	outputParameter(trainingDocuments,testDocuments)	
+
+
+if __name__ == '__main__':
+	main(sys.argv)
