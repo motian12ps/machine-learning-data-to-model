@@ -1,0 +1,2 @@
+javac `find ./src/com/tianyichen -name '*.java'` -d bin
+java -cp bin com/tianyichen/sampler/CollaspedSampler $*
